@@ -1,0 +1,289 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+           xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+           xmlns:viewmodels="clr-namespace:SOLARY.ViewModels"
+           x:Class="SOLARY.Views.MapPage"
+           BackgroundColor="Black"
+           NavigationPage.HasNavigationBar="False">
+
+    <ContentPage.BindingContext>
+        <viewmodels:MapViewModel/>
+    </ContentPage.BindingContext>
+
+    <ContentPage.Resources>
+        <ResourceDictionary>
+            <viewmodels:BoolToColorConverter x:Key="BoolToColorConverter"/>
+            <viewmodels:BoolToIconConverter x:Key="BoolToIconConverter"/>
+            <Style x:Key="NavItemStyle" TargetType="VerticalStackLayout">
+                <Setter Property="HorizontalOptions" Value="Center"/>
+                <Setter Property="VerticalOptions" Value="Center"/>
+                <Setter Property="Spacing" Value="8"/>
+                <Setter Property="Margin" Value="0,10,0,0"/>
+            </Style>
+            <Style x:Key="NavIconStyle" TargetType="Image">
+                <Setter Property="HeightRequest" Value="24"/>
+                <Setter Property="WidthRequest" Value="24"/>
+                <Setter Property="HorizontalOptions" Value="Center"/>
+            </Style>
+            <Style x:Key="NavTextStyle" TargetType="Label">
+                <Setter Property="FontSize" Value="12"/>
+                <Setter Property="HorizontalOptions" Value="Center"/>
+                <Setter Property="TextColor" Value="#999999"/>
+            </Style>
+            <Style x:Key="NavTextActiveStyle" TargetType="Label" BasedOn="{StaticResource NavTextStyle}">
+                <Setter Property="TextColor" Value="#FFD602"/>
+            </Style>
+            <Style x:Key="MapButtonStyle" TargetType="Frame">
+                <Setter Property="BackgroundColor" Value="#333333"/>
+                <Setter Property="CornerRadius" Value="20"/>
+                <Setter Property="HeightRequest" Value="40"/>
+                <Setter Property="WidthRequest" Value="40"/>
+                <Setter Property="Padding" Value="0"/>
+                <Setter Property="Margin" Value="0,5,0,5"/>
+                <Setter Property="HasShadow" Value="True"/>
+            </Style>
+            <Style x:Key="ActionButtonStyle" TargetType="Frame">
+                <Setter Property="CornerRadius" Value="20"/>
+                <Setter Property="HeightRequest" Value="40"/>
+                <Setter Property="Padding" Value="15,0"/>
+                <Setter Property="HasShadow" Value="True"/>
+            </Style>
+            <Style x:Key="SearchBarStyle" TargetType="SearchBar">
+                <Setter Property="BackgroundColor" Value="#333333"/>
+                <Setter Property="TextColor" Value="White"/>
+                <Setter Property="PlaceholderColor" Value="#999999"/>
+                <Setter Property="CancelButtonColor" Value="White"/>
+                <Setter Property="FontSize" Value="14"/>
+                <Setter Property="HeightRequest" Value="36"/>
+                <Setter Property="WidthRequest" Value="300"/>
+                <Setter Property="HorizontalOptions" Value="Center"/>
+                <Setter Property="VerticalOptions" Value="Start"/>
+                <Setter Property="Opacity" Value="0.9"/>
+            </Style>
+        </ResourceDictionary>
+    </ContentPage.Resources>
+
+    <!-- Modifier la structure principale pour permettre un scroll global -->
+    <Grid RowDefinitions="*,Auto">
+        <!-- ScrollView global qui contient tout le contenu -->
+        <ScrollView Grid.Row="0" x:Name="MainScrollView" Scrolled="OnMainScrolled">
+            <VerticalStackLayout Spacing="0">
+                <!-- Conteneur de la carte avec hauteur fixe -->
+                <Grid HeightRequest="450" x:Name="MapContainer">
+                    <WebView x:Name="MapWebView"
+                           VerticalOptions="Fill" 
+                           HorizontalOptions="Fill"
+                           BackgroundColor="#121824"
+                           Margin="0" />
+
+                    <!-- Barre de recherche sur la carte -->
+                    <SearchBar x:Name="SearchBar"
+                             Placeholder="Rechercher une borne..."
+                             Style="{StaticResource SearchBarStyle}"
+                             Margin="0,15,0,0"
+                             TextChanged="OnSearchTextChanged"
+                             VerticalOptions="Start"
+                             HorizontalOptions="Center"
+                             ZIndex="1"/>
+
+                    <!-- Contrôles de carte (à droite) -->
+                    <VerticalStackLayout HorizontalOptions="End" 
+                                       VerticalOptions="Center" 
+                                       Spacing="10" 
+                                       Margin="0,0,15,0"
+                                       ZIndex="1">
+                        <!-- Bouton Zoom + -->
+                        <Frame Style="{StaticResource MapButtonStyle}" BackgroundColor="#222222">
+                            <Frame.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnZoomInClicked"/>
+                            </Frame.GestureRecognizers>
+                            <Label Text="+" 
+                                 TextColor="White" 
+                                 FontSize="20" 
+                                 HorizontalOptions="Center" 
+                                 VerticalOptions="Center"/>
+                        </Frame>
+
+                        <!-- Bouton Zoom - -->
+                        <Frame Style="{StaticResource MapButtonStyle}" BackgroundColor="#222222">
+                            <Frame.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnZoomOutClicked"/>
+                            </Frame.GestureRecognizers>
+                            <Label Text="-" 
+                                 TextColor="White" 
+                                 FontSize="20" 
+                                 HorizontalOptions="Center" 
+                                 VerticalOptions="Center"/>
+                        </Frame>
+
+                        <!-- Bouton Vue 3D -->
+                        <Frame Style="{StaticResource MapButtonStyle}" BackgroundColor="#222222">
+                            <Frame.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnLayersClicked"/>
+                            </Frame.GestureRecognizers>
+                            <Image Source="map_3d.png" 
+                                 HeightRequest="20" 
+                                 WidthRequest="20" 
+                                 HorizontalOptions="Center" 
+                                 VerticalOptions="Center"/>
+                        </Frame>
+
+                        <!-- Bouton Recentrer -->
+                        <Frame Style="{StaticResource MapButtonStyle}" BackgroundColor="#222222">
+                            <Frame.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnCenterClicked"/>
+                            </Frame.GestureRecognizers>
+                            <Image Source="map_center.png" 
+                                 HeightRequest="20" 
+                                 WidthRequest="20" 
+                                 HorizontalOptions="Center" 
+                                 VerticalOptions="Center"/>
+                        </Frame>
+                    </VerticalStackLayout>
+
+                    <!-- Boutons du bas -->
+                    <HorizontalStackLayout HorizontalOptions="Center" 
+                                        VerticalOptions="End" 
+                                        Spacing="15"
+                                        Margin="0,0,0,15"
+                                        ZIndex="1">
+                        <!-- Bouton Filtres -->
+                        <Frame Style="{StaticResource ActionButtonStyle}" BackgroundColor="#222222">
+                            <Frame.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnFiltersClicked"/>
+                            </Frame.GestureRecognizers>
+                            <HorizontalStackLayout Spacing="8" Padding="10,0">
+                                <Image Source="icon_filter.png" 
+                                     HeightRequest="16" 
+                                     WidthRequest="16" 
+                                     VerticalOptions="Center"/>
+                                <Label Text="Filtres" 
+                                     TextColor="White" 
+                                     FontSize="14" 
+                                     FontAttributes="Bold"
+                                     VerticalOptions="Center"/>
+                            </HorizontalStackLayout>
+                        </Frame>
+
+                        <!-- Bouton Ma position -->
+                        <Frame Style="{StaticResource ActionButtonStyle}" BackgroundColor="#FFD602">
+                            <Frame.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnMyLocationClicked"/>
+                            </Frame.GestureRecognizers>
+                            <HorizontalStackLayout Spacing="8" Padding="10,0">
+                                <Image Source="icon_location.png" 
+                                     HeightRequest="16" 
+                                     WidthRequest="16" 
+                                     VerticalOptions="Center"/>
+                                <Label Text="Ma position" 
+                                     TextColor="#333333" 
+                                     FontSize="14" 
+                                     FontAttributes="Bold" 
+                                     VerticalOptions="Center"/>
+                            </HorizontalStackLayout>
+                        </Frame>
+                    </HorizontalStackLayout>
+                </Grid>
+
+                <!-- En-tête de la liste des bornes -->
+                <Grid BackgroundColor="Black" Padding="15,12">
+                    <HorizontalStackLayout Spacing="8">
+                        <Ellipse Fill="#FFD602" WidthRequest="8" HeightRequest="8" VerticalOptions="Center"/>
+                        <Label Text="Bornes à proximité" 
+                             FontSize="16" 
+                             FontAttributes="Bold" 
+                             TextColor="White"/>
+                    </HorizontalStackLayout>
+                </Grid>
+
+                <!-- Liste des bornes avec une hauteur minimale pour éviter les problèmes de scroll -->
+                <VerticalStackLayout x:Name="StationListLayout" 
+                                   Spacing="0" 
+                                   Padding="0,5,0,90" 
+                                   BackgroundColor="Black"
+                                   MinimumHeightRequest="600">
+                    <!-- Les bornes seront ajoutées ici dynamiquement -->
+                </VerticalStackLayout>
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <!-- Bottom Navigation - Fixé en bas de l'écran -->
+        <Border Grid.Row="1" 
+             BackgroundColor="White" 
+             StrokeShape="RoundRectangle 30,30,0,0"
+             Padding="0" 
+             StrokeThickness="0"
+             HeightRequest="80" 
+             VerticalOptions="End"
+             Shadow="{Shadow Brush='#30000000', Offset='0,-5', Radius='15'}"
+             ZIndex="2">
+            <Grid RowDefinitions="Auto,*" ColumnDefinitions="*,*,*,*,*">
+                <!-- Indicateur jaune pour l'onglet actif -->
+                <BoxView Grid.Row="0" Grid.Column="2" 
+                       HeightRequest="3" 
+                       WidthRequest="40" 
+                       Color="#FFD602" 
+                       HorizontalOptions="Center" 
+                       VerticalOptions="Start"
+                       Margin="0,0,0,0"/>
+
+                <!-- Barre de progression en bas -->
+                <BoxView Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="5"
+                       HeightRequest="4"
+                       Color="#EEEEEE"
+                       VerticalOptions="End"
+                       Margin="40,0,40,15"/>
+
+                <!-- Onglet Accueil -->
+                <VerticalStackLayout Grid.Row="1" Grid.Column="0" 
+                                   Style="{StaticResource NavItemStyle}"
+                                   x:Name="AccueilTab">
+                    <Image Source="icon_home.png" 
+                         Style="{StaticResource NavIconStyle}"/>
+                    <Label Text="Accueil" 
+                         Style="{StaticResource NavTextStyle}"/>
+                </VerticalStackLayout>
+
+                <!-- Onglet Statistiques -->
+                <VerticalStackLayout Grid.Row="1" Grid.Column="1" 
+                                   Style="{StaticResource NavItemStyle}"
+                                   x:Name="StatistiquesTab">
+                    <Image Source="icon_stats.png" 
+                         Style="{StaticResource NavIconStyle}"/>
+                    <Label Text="Statistiques" 
+                         Style="{StaticResource NavTextStyle}"/>
+                </VerticalStackLayout>
+
+                <!-- Onglet Localiser -->
+                <VerticalStackLayout Grid.Row="1" Grid.Column="2" 
+                                   Style="{StaticResource NavItemStyle}"
+                                   x:Name="LocaliserTab">
+                    <Image Source="icon_map.png" 
+                         Style="{StaticResource NavIconStyle}"/>
+                    <Label Text="Localiser" 
+                         Style="{StaticResource NavTextActiveStyle}"/>
+                </VerticalStackLayout>
+
+                <!-- Onglet Scan -->
+                <VerticalStackLayout Grid.Row="1" Grid.Column="3" 
+                                   Style="{StaticResource NavItemStyle}"
+                                   x:Name="ScanTab">
+                    <Image Source="icon_scan.png" 
+                         Style="{StaticResource NavIconStyle}"/>
+                    <Label Text="Scan" 
+                         Style="{StaticResource NavTextStyle}"/>
+                </VerticalStackLayout>
+
+                <!-- Onglet Paramètres -->
+                <VerticalStackLayout Grid.Row="1" Grid.Column="4" 
+                                   Style="{StaticResource NavItemStyle}"
+                                   x:Name="ParametresTab">
+                    <Image Source="icon_settings.png" 
+                         Style="{StaticResource NavIconStyle}"/>
+                    <Label Text="Paramètres" 
+                         Style="{StaticResource NavTextStyle}"/>
+                </VerticalStackLayout>
+            </Grid>
+        </Border>
+    </Grid>
+</ContentPage>

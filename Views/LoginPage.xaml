@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="SOLARY.Views.LoginPage"
+             BackgroundColor="Black">
+
+    <Grid RowDefinitions="0.4*, 0.6*">
+
+        <!-- Image de fond -->
+        <Image Source="bg.png"
+               Aspect="AspectFill"
+               Opacity="0.8"
+               Grid.RowSpan="3" />
+
+        <!-- Illustration en haut -->
+        <Image Source="empreinte_carbone.png"
+               Aspect="AspectFit"
+               Grid.Row="0"
+               HorizontalOptions="Center"
+               VerticalOptions="Center" />
+
+        <!-- Contenu du formulaire -->
+        <StackLayout Grid.Row="1" Padding="30" Spacing="20">
+
+            <!-- Titre -->
+            <Label Text="Se connecter"
+                   FontFamily="PoppinsSemibold"
+                   FontSize="20"
+                   TextColor="#FFD602"
+                   HorizontalTextAlignment="Start"
+                   VerticalOptions="Center" />
+
+            <!-- Adresse e-mail -->
+            <StackLayout>
+                <StackLayout Orientation="Horizontal" Spacing="5" VerticalOptions="Center">
+                    <Image Source="mail.png" Aspect="AspectFit" HeightRequest="25" VerticalOptions="Center" />
+                    <Entry Placeholder="Adresse e-mail"
+                           Keyboard="Email"
+                           Text="{Binding Email}"
+                           FontSize="15"
+                           FontFamily="PoppinsRegular"
+                           TextColor="White"
+                           PlaceholderColor="White"
+                           BackgroundColor="Transparent"
+                           HorizontalOptions="FillAndExpand" />
+                </StackLayout>
+                <BoxView HeightRequest="1" BackgroundColor="White" />
+            </StackLayout>
+
+            <!-- Mot de passe -->
+            <StackLayout>
+                <StackLayout Orientation="Horizontal" Spacing="10" VerticalOptions="Center">
+                    <Image Source="password_icon.png" Aspect="AspectFit" HeightRequest="25" VerticalOptions="Center" />
+                    <Entry x:Name="PasswordEntry"
+                       Placeholder="Mot de passe"
+                       IsPassword="True"
+                       FontSize="15"
+                       Text="{Binding Password}"
+                       FontFamily="PoppinsRegular"
+                       TextColor="White"
+                       PlaceholderColor="White"
+                       BackgroundColor="Transparent"
+                       HorizontalOptions="FillAndExpand" />
+
+                    <Image x:Name="EyeIcon"
+                       Source="eye_closed.png"
+                       HeightRequest="25"
+                       VerticalOptions="Center">
+                        <Image.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="TogglePasswordVisibility" />
+                        </Image.GestureRecognizers>
+                    </Image>
+                </StackLayout>
+                <BoxView HeightRequest="1" BackgroundColor="White" />
+            </StackLayout>
+
+            <!-- Lien mot de passe oublié -->
+            <Label Text="Mot de passe oublié ?"
+                   FontFamily="PoppinsRegular"
+                   FontSize="13"
+                   TextColor="White"
+                   HorizontalOptions="End"
+                   VerticalOptions="Center" />
+
+            <!-- Bouton Se connecter -->
+            <Button Text="Se connecter"
+                    BackgroundColor="#FFD602"
+                    TextColor="Black"
+                    Command="{Binding LoginCommand}"
+                    FontFamily="PoppinsMedium"
+                    CornerRadius="25"
+                    HeightRequest="45"
+                    WidthRequest="200"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center" />
+
+            <!-- Lien vers l'inscription -->
+            <Label HorizontalOptions="Center"
+                   VerticalOptions="End"
+                   Margin="0,20,0,0">
+                <Label.FormattedText>
+                    <FormattedString>
+                        <Span Text="Pas de compte ? "
+                              FontFamily="PoppinsRegular"
+                              FontSize="14"
+                              TextColor="White" />
+                        <Span Text="S'inscrire"
+                              FontFamily="PoppinsSemibold"
+                              FontSize="14"
+                              TextColor="#FFD602" />
+                    </FormattedString>
+                </Label.FormattedText>
+                <Label.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding NavigateToRegisterCommand}" />
+                </Label.GestureRecognizers>
+            </Label>
+
+        </StackLayout>
+    </Grid>
+</ContentPage>

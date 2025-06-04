@@ -80,7 +80,7 @@
                 height: 36px;
             }
 
-        /* Style pour les popups */
+        /* Style pour les popups - MODIFIÉ pour un format plus carré */
         .leaflet-popup-content-wrapper {
             padding: 0;
             overflow: hidden;
@@ -88,12 +88,15 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.2);
             border: none;
             background: transparent;
+            max-width: 180px; /* Augmenté pour plus de largeur */
+            width: auto !important;
         }
 
         .leaflet-popup-content {
             margin: 0;
             padding: 0;
-            width: 200px !important;
+            width: auto !important;
+            max-width: 180px; /* Augmenté pour plus de largeur */
             background: transparent;
         }
 
@@ -104,10 +107,10 @@
         .leaflet-popup-close-button {
             color: rgba(255,255,255,0.9) !important;
             margin: 4px 4px 0 0 !important;
-            font-size: 14px !important;
+            font-size: 12px !important;
             font-weight: 300 !important;
-            width: 18px !important;
-            height: 18px !important;
+            width: 16px !important;
+            height: 16px !important;
             background: rgba(0,0,0,0.2) !important;
             border-radius: 50% !important;
             display: flex !important;
@@ -121,35 +124,39 @@
                 background: rgba(0,0,0,0.4) !important;
             }
 
+        /* Correction du positionnement des popups */
+        .leaflet-popup {
+            margin-bottom: 20px !important;
+            max-height: 90vh;
+            overflow: visible;
+            pointer-events: auto !important;
+        }
+
+            /* Ajout d'une classe pour les popups qui dépassent de la carte */
+            .leaflet-popup.popup-overflow {
+                max-height: 80vh;
+                overflow-y: auto;
+            }
+
         .station-popup {
             width: 100%;
-            background: linear-gradient(135deg, #1a1a1a 0%, #2c2c2c 100%);
+            background: white;
             border-radius: 10px;
             overflow: hidden;
-            color: white;
+            color: #333;
             box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            max-width: 180px; /* Augmenté pour plus de largeur */
         }
 
         .station-popup-header {
-            padding: 10px;
-            position: relative;
-            z-index: 1;
+            padding: 6px;
+            background-color: #333;
+            color: white;
         }
 
-            .station-popup-header::before {
-                content: '';
-                position: absolute;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: linear-gradient(135deg, rgba(255,214,2,0.15) 0%, rgba(255,214,2,0.05) 100%);
-                z-index: -1;
-            }
-
             .station-popup-header h3 {
-                margin: 0 0 5px 0;
-                font-size: 14px;
+                margin: 0 0 2px 0;
+                font-size: 12px;
                 font-weight: 600;
                 letter-spacing: -0.2px;
                 color: white;
@@ -157,13 +164,16 @@
 
             .station-popup-header p {
                 margin: 0;
-                font-size: 12px;
+                font-size: 9px; /* Réduit davantage */
                 color: rgba(255,255,255,0.7);
                 font-weight: 400;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
             }
 
         .station-popup-body {
-            padding: 10px;
+            padding: 6px;
             background-color: white;
             color: #333333;
             border-radius: 0 0 10px 10px;
@@ -172,74 +182,54 @@
         .power-info {
             display: flex;
             align-items: center;
-            margin-bottom: 10px;
-            position: relative;
+            margin-bottom: 4px; /* Réduit davantage */
         }
 
         .power-icon {
-            width: 32px;
-            height: 32px;
+            width: 20px; /* Réduit davantage */
+            height: 20px; /* Réduit davantage */
             background-color: #FFD602;
-            border-radius: 8px;
+            border-radius: 5px; /* Réduit davantage */
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-right: 10px;
-            box-shadow: 0 2px 6px rgba(255,214,2,0.3);
+            margin-right: 5px; /* Réduit davantage */
+            flex-shrink: 0;
         }
 
             .power-icon svg {
-                width: 18px;
-                height: 18px;
-                fill: #1a1a1a;
+                width: 12px; /* Réduit davantage */
+                height: 12px; /* Réduit davantage */
+                fill: #333;
             }
 
-        .power-details {
-            flex: 1;
-        }
-
         .power-value {
-            font-size: 16px;
+            font-size: 12px; /* Réduit davantage */
             font-weight: 600;
-            color: #1a1a1a;
-            margin-bottom: 2px;
-        }
-
-        .power-type {
-            font-size: 12px;
-            color: #666;
+            color: #333;
+            margin-right: 3px; /* Réduit davantage */
         }
 
         .power-badge {
-            position: absolute;
-            right: 0;
-            top: 50%;
-            transform: translateY(-50%);
             background-color: #f0f0f0;
-            color: #1a1a1a;
-            font-size: 10px;
+            color: #333;
+            font-size: 7px; /* Réduit davantage */
             font-weight: 600;
-            padding: 3px 8px;
-            border-radius: 12px;
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
-        }
-
-        .status-container {
-            margin: 15px 0;
-            position: relative;
+            padding: 1px 4px; /* Réduit davantage */
+            border-radius: 6px; /* Réduit davantage */
+            margin-left: auto;
         }
 
         .status-label {
-            font-size: 12px;
+            font-size: 9px; /* Réduit davantage */
             color: #666;
-            margin-bottom: 5px;
+            margin-bottom: 1px; /* Réduit davantage */
         }
 
         .status-value {
-            font-size: 16px;
+            font-size: 12px; /* Réduit davantage */
             font-weight: 600;
-            margin-bottom: 8px;
+            margin-bottom: 3px; /* Réduit davantage */
         }
 
         .status-available {
@@ -255,16 +245,16 @@
         }
 
         .progress-container {
-            height: 6px;
+            height: 3px; /* Réduit davantage */
             background-color: #f0f0f0;
-            border-radius: 3px;
+            border-radius: 2px;
             overflow: hidden;
-            margin-bottom: 5px;
+            margin-bottom: 1px; /* Réduit davantage */
         }
 
         .progress-fill {
             height: 100%;
-            border-radius: 3px;
+            border-radius: 2px;
             transition: width 0.5s ease;
         }
 
@@ -283,37 +273,70 @@
         .progress-labels {
             display: flex;
             justify-content: space-between;
-            font-size: 10px;
+            font-size: 7px; /* Réduit davantage */
             color: #999;
+            margin-bottom: 3px; /* Ajouté pour réduire l'espace */
         }
 
         .usage-info {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-top: 15px;
-            padding-top: 15px;
+            margin-top: 5px; /* Réduit davantage */
+            padding-top: 5px; /* Réduit davantage */
             border-top: 1px solid #f0f0f0;
         }
 
         .usage-label {
             color: #666;
-            font-size: 12px;
+            font-size: 9px; /* Réduit davantage */
         }
 
         .last-usage {
             display: inline-block;
-            background-color: #1a1a1a;
+            background-color: #333;
             color: white;
-            font-size: 11px;
+            font-size: 8px; /* Réduit davantage */
             font-weight: 500;
-            padding: 4px 10px;
-            border-radius: 12px;
+            padding: 1px 5px; /* Réduit davantage */
+            border-radius: 6px; /* Réduit davantage */
         }
 
             .last-usage.unavailable {
                 background-color: #f0f0f0;
                 color: #666;
+            }
+
+        /* Style pour le bouton de navigation */
+        .navigation-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #333;
+            color: white;
+            font-size: 9px; /* Réduit davantage */
+            font-weight: 600;
+            padding: 5px 8px; /* Réduit davantage */
+            border-radius: 12px; /* Réduit davantage */
+            margin-top: 5px; /* Réduit davantage */
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+            width: 100%;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+
+            .navigation-button:hover {
+                background-color: #555;
+                transform: translateY(-2px);
+                box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            }
+
+            .navigation-button svg {
+                width: 10px; /* Réduit davantage */
+                height: 10px; /* Réduit davantage */
+                margin-right: 3px; /* Réduit davantage */
+                fill: currentColor;
             }
 
         /* Attribution de la carte */
@@ -357,38 +380,6 @@
         .station-marker.pulse {
             animation: pulse 1.5s infinite;
         }
-
-        /* Style pour le bouton de navigation */
-        .navigation-button {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background-color: #1a1a1a;
-            color: white;
-            font-size: 12px;
-            font-weight: 600;
-            padding: 10px 15px;
-            border-radius: 20px;
-            margin-top: 15px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            border: none;
-            width: 100%;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-        }
-
-            .navigation-button:hover {
-                background-color: #333;
-                transform: translateY(-2px);
-                box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-            }
-
-            .navigation-button svg {
-                width: 16px;
-                height: 16px;
-                margin-right: 6px;
-                fill: currentColor;
-            }
 
         /* Amélioration de la fluidité des animations */
         .leaflet-fade-anim .leaflet-tile,
@@ -461,19 +452,15 @@
             transition: opacity 0.3s ease;
         }
 
-        /* Amélioration pour les popups */
-        .leaflet-popup {
-            margin-bottom: 0 !important; /* Correction: Suppression du décalage vertical du popup */
-        }
-
         /* Style pour les marqueurs 3D */
         .maplibregl-marker {
             will-change: transform;
         }
 
-        /* Style pour les popups 3D */
+        /* Style pour les popups 3D - MODIFIÉ pour correspondre aux changements 2D */
         .maplibregl-popup {
             z-index: 1;
+            max-width: 180px !important; /* Augmenté pour plus de largeur */
         }
 
         .maplibregl-popup-content {
@@ -481,14 +468,15 @@
             border-radius: 10px;
             overflow: hidden;
             box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            max-width: 180px !important; /* Augmenté pour plus de largeur */
         }
 
         .maplibregl-popup-close-button {
             color: rgba(255,255,255,0.9);
-            font-size: 14px;
+            font-size: 12px;
             font-weight: 300;
-            width: 18px;
-            height: 18px;
+            width: 16px;
+            height: 16px;
             background: rgba(0,0,0,0.2);
             border-radius: 50%;
             display: flex;
@@ -504,6 +492,26 @@
                 color: white;
                 background: rgba(0,0,0,0.4);
             }
+
+        /* Adaptation pour les petits écrans */
+        @media (max-width: 480px) {
+            .station-popup {
+                max-width: 170px; /* Augmenté mais toujours adapté pour mobile */
+            }
+
+            .leaflet-popup-content-wrapper,
+            .leaflet-popup-content {
+                max-width: 170px; /* Augmenté mais toujours adapté pour mobile */
+            }
+
+            .power-value {
+                font-size: 11px;
+            }
+
+            .status-value {
+                font-size: 11px;
+            }
+        }
     </style>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <!-- MapLibre GL JS pour la vue 3D -->
@@ -548,6 +556,323 @@
         // Variables pour les marqueurs 3D
         var markers3D = [];
 
+        // Variables globales pour les marqueurs
+        var markers = [];
+        var markerLayer = null;
+        var activeMarkerId = null;
+
+        // Variables pour la mise à jour en temps réel
+        var updateInterval = null;
+        var lastUpdateTimestamp = 0;
+        var realTimeUpdateEnabled = false;
+
+        // Fonction pour détecter les obstructions UI - CORRIGÉE selon l'interface SOLARY
+        function detectUIObstructions() {
+            var obstructions = {
+                top: 0,
+                bottom: 0,
+                left: 0,
+                right: 0
+            };
+
+            try {
+                var windowHeight = window.innerHeight;
+                var windowWidth = window.innerWidth;
+
+                // Basé sur l'interface SOLARY visible dans la capture d'écran
+                obstructions.top = 100; // Barre de recherche + marge
+                obstructions.right = 70; // Boutons zoom, position, menu
+                obstructions.bottom = 150; // Boutons en bas et section proximité (réduit pour meilleur centrage)
+                obstructions.left = 0; // Pas d'obstruction à gauche
+
+                console.log("Obstructions UI SOLARY détectées:", obstructions);
+            } catch (e) {
+                console.error("Erreur lors de la détection des obstructions UI:", e);
+                // Valeurs par défaut sécurisées pour l'interface SOLARY
+                obstructions.top = 100;
+                obstructions.bottom = 150;
+                obstructions.right = 70;
+                obstructions.left = 0;
+            }
+
+            return obstructions;
+        }
+
+        // Fonction pour calculer la zone visible sûre pour les popups
+        function getSafeViewArea() {
+            var obstructions = detectUIObstructions();
+            var mapContainer = map.getContainer();
+            var mapRect = mapContainer.getBoundingClientRect();
+
+            var safeArea = {
+                top: obstructions.top,
+                bottom: mapRect.height - obstructions.bottom,
+                left: obstructions.left,
+                right: mapRect.width - obstructions.right,
+                height: mapRect.height - obstructions.top - obstructions.bottom,
+                width: mapRect.width - obstructions.left - obstructions.right
+            };
+
+            // Calculer le centre EXACT de la zone sûre
+            safeArea.centerY = safeArea.top + (safeArea.height / 2);
+            safeArea.centerX = safeArea.left + (safeArea.width / 2);
+
+            console.log("Zone sûre calculée:", safeArea);
+            return safeArea;
+        }
+
+        // NOUVELLE FONCTION: Centrage parfait au milieu de la zone visible
+        function centerMarkerPerfectly(marker) {
+            if (!map || !marker) return;
+
+            var markerLatLng = marker.getLatLng();
+            var safeArea = getSafeViewArea();
+
+            console.log("=== CENTRAGE PARFAIT DU MARQUEUR ===");
+            console.log("Position du marqueur:", markerLatLng);
+            console.log("Zone sûre:", safeArea);
+
+            // D'abord, centrer la carte sur le marqueur
+            map.setView(markerLatLng, 17, {
+                animate: true,
+                duration: 0.8,
+                easeLinearity: 0.2
+            });
+
+            // Attendre que l'animation soit terminée
+            setTimeout(function () {
+                // Obtenir la position actuelle du marqueur en pixels
+                var markerPixel = map.latLngToContainerPoint(markerLatLng);
+                console.log("Position actuelle du marqueur en pixels:", markerPixel);
+
+                // Calculer le décalage nécessaire pour centrer parfaitement
+                var offsetX = safeArea.centerX - markerPixel.x;
+                var offsetY = safeArea.centerY - markerPixel.y;
+
+                console.log("Décalage nécessaire:", { x: offsetX, y: offsetY });
+
+                // Appliquer le décalage pour centrer parfaitement le marqueur
+                if (Math.abs(offsetX) > 2 || Math.abs(offsetY) > 2) {
+                    map.panBy([offsetX, offsetY], {
+                        animate: true,
+                        duration: 0.4,
+                        easeLinearity: 0.2
+                    });
+                }
+
+                // Ouvrir le popup après le centrage parfait
+                setTimeout(function () {
+                    marker.openPopup();
+                    currentOpenPopup = marker.getPopup();
+
+                    // Vérifier et ajuster le popup si nécessaire
+                    setTimeout(function () {
+                        adjustPopupPosition(marker.getPopup());
+                    }, 150);
+                }, 450);
+            }, 850);
+        }
+
+        // Fonction pour ajuster la position du popup pour qu'il soit entièrement visible
+        function adjustPopupPosition(popup) {
+            if (!popup || !popup._container) return;
+
+            var safeArea = getSafeViewArea();
+            var popupRect = popup._container.getBoundingClientRect();
+            var mapRect = map.getContainer().getBoundingClientRect();
+
+            // Coordonnées du popup relatives à la carte
+            var popupTop = popupRect.top - mapRect.top;
+            var popupBottom = popupRect.bottom - mapRect.top;
+            var popupLeft = popupRect.left - mapRect.left;
+            var popupRight = popupRect.right - mapRect.left;
+
+            console.log("Position du popup:", {
+                top: popupTop,
+                bottom: popupBottom,
+                left: popupLeft,
+                right: popupRight
+            });
+
+            // Calculer les ajustements nécessaires
+            var adjustX = 0;
+            var adjustY = 0;
+
+            // Vérifier si le popup dépasse en haut
+            if (popupTop < safeArea.top) {
+                adjustY = safeArea.top - popupTop + 10;
+                console.log("Popup trop haut, ajustement Y:", adjustY);
+            }
+
+            // Vérifier si le popup dépasse en bas
+            if (popupBottom > safeArea.bottom) {
+                adjustY = safeArea.bottom - popupBottom - 10;
+                console.log("Popup trop bas, ajustement Y:", adjustY);
+            }
+
+            // Vérifier si le popup dépasse à droite
+            if (popupRight > safeArea.right) {
+                adjustX = safeArea.right - popupRight - 10;
+                console.log("Popup trop à droite, ajustement X:", adjustX);
+            }
+
+            // Vérifier si le popup dépasse à gauche
+            if (popupLeft < safeArea.left) {
+                adjustX = safeArea.left - popupLeft + 10;
+                console.log("Popup trop à gauche, ajustement X:", adjustX);
+            }
+
+            // Appliquer l'ajustement si nécessaire
+            if (adjustX !== 0 || adjustY !== 0) {
+                console.log("Ajustement final du popup:", { x: adjustX, y: adjustY });
+                map.panBy(new L.Point(-adjustX, -adjustY), {
+                    animate: true,
+                    duration: 0.3,
+                    easeLinearity: 0.2,
+                    noMoveStart: true
+                });
+            }
+        }
+
+        // SYSTÈME DE MISE À JOUR EN TEMPS RÉEL
+        function startRealTimeUpdates() {
+            if (updateInterval) {
+                clearInterval(updateInterval);
+            }
+
+            // Vérifier les mises à jour toutes les 5 secondes
+            updateInterval = setInterval(function () {
+                checkForUpdates();
+            }, 5000);
+
+            realTimeUpdateEnabled = true;
+            console.log("Système de mise à jour en temps réel démarré");
+        }
+
+        function stopRealTimeUpdates() {
+            if (updateInterval) {
+                clearInterval(updateInterval);
+                updateInterval = null;
+            }
+            realTimeUpdateEnabled = false;
+            console.log("Système de mise à jour en temps réel arrêté");
+        }
+
+        function checkForUpdates() {
+            // Demander à l'application native de vérifier les mises à jour
+            notifyNative('checkUpdates', {
+                lastUpdate: lastUpdateTimestamp
+            });
+        }
+
+        // Fonction appelée par l'application native quand il y a des mises à jour
+        function handleRealTimeUpdate(newData, timestamp) {
+            if (!newData || !Array.isArray(newData)) return;
+
+            if (timestamp > lastUpdateTimestamp) {
+                console.log("Mise à jour en temps réel reçue:", newData.length, "stations");
+                lastUpdateTimestamp = timestamp;
+
+                // Mettre à jour les données sans recharger la page
+                updateStationDataRealTime(newData);
+            }
+        }
+
+        // Mise à jour en temps réel des données
+        function updateStationDataRealTime(newData) {
+            try {
+                var previousActiveId = activeMarkerId;
+                stationData = newData;
+
+                // Adapter les propriétés
+                for (let i = 0; i < stationData.length; i++) {
+                    adaptStationProperties(stationData[i]);
+                }
+
+                // Mettre à jour les marqueurs sans animation perturbante
+                if (map && markerLayer && !window.is3DView) {
+                    markerLayer.clearLayers();
+                    markers = [];
+
+                    stationData.forEach(function (station) {
+                        if (station.lat && station.lng && !isNaN(parseFloat(station.lat)) && !isNaN(parseFloat(station.lng))) {
+                            var marker = createStationMarker(station);
+                            if (marker) {
+                                markers.push(marker);
+                                markerLayer.addLayer(marker);
+                            }
+                        }
+                    });
+
+                    // Restaurer la station active si elle existe toujours
+                    if (previousActiveId !== null) {
+                        var activeStation = stationData.find(function (s) {
+                            return s.id === previousActiveId || s.borne_id === previousActiveId;
+                        });
+                        if (activeStation) {
+                            setTimeout(function () {
+                                var activeMarker = markers.find(function (m) {
+                                    return m.options.stationId === previousActiveId;
+                                });
+                                if (activeMarker && currentOpenPopup) {
+                                    activeMarker.openPopup();
+                                }
+                            }, 100);
+                        }
+                    }
+                }
+
+                // Mettre à jour les marqueurs 3D
+                if (map3d && map3dInitialized && window.is3DView) {
+                    refreshMarkers3D();
+                }
+
+                console.log("Mise à jour en temps réel terminée");
+            } catch (e) {
+                console.error("Erreur lors de la mise à jour en temps réel:", e);
+            }
+        }
+
+        // Fonction pour centrer la carte sur un marqueur et ouvrir son popup
+        function centerMapAndOpenPopup(marker) {
+            if (!map || !marker || isAnimating) return;
+
+            console.log("=== DÉBUT DU PROCESSUS DE CENTRAGE ===");
+            isAnimating = true;
+
+            // Fermer tous les popups existants
+            closeAllPopups();
+
+            // Utiliser le nouveau centrage parfait
+            centerMarkerPerfectly(marker);
+
+            // Réinitialiser le flag d'animation après un délai
+            setTimeout(function () {
+                isAnimating = false;
+            }, 1500);
+        }
+
+        // Fonction pour vérifier si un popup dépasse de la carte
+        function checkPopupOverflow(popup) {
+            if (!popup || !popup._container) return;
+
+            var container = popup._container;
+            var safeArea = getSafeViewArea();
+            var popupRect = container.getBoundingClientRect();
+            var mapRect = map.getContainer().getBoundingClientRect();
+
+            // Convertir en coordonnées relatives à la carte
+            var popupTop = popupRect.top - mapRect.top;
+            var popupBottom = popupRect.bottom - mapRect.top;
+
+            // Si le popup dépasse de la zone sûre
+            if (popupTop < safeArea.top || popupBottom > safeArea.bottom) {
+                L.DomUtil.addClass(container, 'popup-overflow');
+            } else {
+                L.DomUtil.removeClass(container, 'popup-overflow');
+            }
+        }
+
         // Fonction pour initialiser la carte
         function initMap() {
             try {
@@ -559,14 +884,14 @@
                     attributionControl: true,
                     minZoom: 5,
                     maxZoom: 19,
-                    zoomSnap: 0.1,  // Valeur plus petite pour un zoom plus fluide
-                    zoomDelta: 0.1, // Valeur plus petite pour un zoom plus fluide
-                    wheelPxPerZoomLevel: 150, // Augmenté pour un défilement plus doux
+                    zoomSnap: 0.25,
+                    zoomDelta: 0.25,
+                    wheelPxPerZoomLevel: 120,
                     fadeAnimation: true,
                     markerZoomAnimation: true,
                     inertia: true,
-                    inertiaDeceleration: 2000, // Réduit pour une inertie plus douce
-                    easeLinearity: 0.15, // Réduit pour des animations plus douces
+                    inertiaDeceleration: 3000,
+                    easeLinearity: 0.2,
                     worldCopyJump: true,
                     preferCanvas: true,
                     tap: true,
@@ -582,9 +907,9 @@
                     maxZoom: 19,
                     maxNativeZoom: 19,
                     tileSize: 256,
-                    updateWhenIdle: false, // Changé pour une mise à jour continue
-                    updateWhenZooming: true, // Changé pour une mise à jour pendant le zoom
-                    keepBuffer: 8 // Augmenté pour un défilement plus fluide
+                    updateWhenIdle: false,
+                    updateWhenZooming: true,
+                    keepBuffer: 6
                 }).addTo(map);
 
                 console.log("Couche de tuiles ajoutée");
@@ -605,28 +930,31 @@
                     }
                 }, 500);
 
-                // Ajouter un écouteur d'événement pour le zoom
-                map.on('zoomend', function () {
-                    if (currentOpenPopup) {
-                        // Réajuster la position du popup après le zoom
-                        setTimeout(function () {
-                            adjustPopupPosition(currentOpenPopup);
-                        }, 100);
-                    }
-                });
-
                 // Ajouter un écouteur d'événement pour fermer les popups lors d'un clic sur la carte
                 map.on('click', function () {
                     closeAllPopups();
                 });
 
-                // Désactiver le déplacement automatique de la carte lors de l'ouverture d'un popup
+                // Gestion améliorée de l'ouverture des popups
                 map.on('popupopen', function (e) {
-                    // Ajuster la position du popup immédiatement après l'ouverture
-                    setTimeout(function () {
-                        adjustPopupPosition(e.popup);
-                    }, 10);
+                    // Stocker le popup actuellement ouvert
+                    currentOpenPopup = e.popup;
+
+                    // Vérifier si le popup dépasse de la carte
+                    checkPopupOverflow(e.popup);
                 });
+
+                // Optimiser la gestion des popups sur mobile
+                if (L.Browser.mobile) {
+                    map.on('popupopen', function (e) {
+                        var container = e.popup._container;
+                        if (container) {
+                            // Empêcher le défilement de la carte lors du défilement dans le popup
+                            L.DomEvent.disableClickPropagation(container);
+                            L.DomEvent.disableScrollPropagation(container);
+                        }
+                    });
+                }
 
                 // Optimiser le défilement sur les appareils mobiles
                 if (L.Browser.touch) {
@@ -635,6 +963,10 @@
                 }
 
                 mapInitialized = true;
+
+                // Démarrer les mises à jour en temps réel
+                startRealTimeUpdates();
+
                 return true;
             } catch (e) {
                 console.error("Erreur lors de l'initialisation de la carte:", e);
@@ -648,7 +980,6 @@
             try {
                 if (map3dInitialized && map3d) {
                     document.getElementById('map3d').style.display = 'block';
-                    // Assurez-vous que les marqueurs sont visibles
                     refreshMarkers3D();
                     return true;
                 }
@@ -656,15 +987,13 @@
                 console.log("Initialisation de la carte 3D...");
                 showLoading();
 
-                // Créer l'instance de la carte 3D avec MapLibre GL
                 maplibregl.setRTLTextPlugin(
                     'https://unpkg.com/@mapbox/mapbox-gl-rtl-text@0.2.3/mapbox-gl-rtl-text.min.js',
                     null,
                     true
                 );
 
-                // Obtenir le centre et le zoom actuels de la carte 2D
-                var center = [6.129, 45.899]; // Annecy par défaut
+                var center = [6.129, 45.899];
                 var zoom = 14;
 
                 if (map && mapInitialized) {
@@ -673,13 +1002,12 @@
                     zoom = map.getZoom();
                 }
 
-                // Initialiser la carte 3D
                 map3d = new maplibregl.Map({
                     container: 'map3d',
                     style: 'https://api.maptiler.com/maps/streets/style.json?key=tsPaLJ6DWZPxMNaJ2DV7',
                     center: center,
                     zoom: zoom,
-                    pitch: 45, // Inclinaison pour l'effet 3D
+                    pitch: 45,
                     bearing: 0,
                     antialias: true,
                     attributionControl: false,
@@ -696,14 +1024,12 @@
                     optimizeForTerrain: true
                 });
 
-                // Ajouter les contrôles de navigation
                 map3d.addControl(new maplibregl.NavigationControl({
                     showCompass: true,
                     showZoom: true,
                     visualizePitch: true
                 }));
 
-                // Ajouter un contrôle pour réinitialiser la vue
                 map3d.addControl(new maplibregl.GeolocateControl({
                     positionOptions: {
                         enableHighAccuracy: true
@@ -713,15 +1039,12 @@
                     showUserLocation: true
                 }));
 
-                // Ajouter la couche 3D des bâtiments lorsque la carte est chargée
                 map3d.on('load', function () {
-                    // Ajouter une source pour les bâtiments 3D
                     map3d.addSource('openmaptiles', {
                         type: 'vector',
                         url: 'https://api.maptiler.com/tiles/v3/tiles.json?key=tsPaLJ6DWZPxMNaJ2DV7'
                     });
 
-                    // Ajouter la couche des bâtiments 3D
                     map3d.addLayer({
                         'id': 'building-3d',
                         'source': 'openmaptiles',
@@ -742,14 +1065,13 @@
                                 ['linear'],
                                 ['zoom'],
                                 14, 0,
-                                16, ['*', ['get', 'height', 10], 1.2] // Multiplier par 1.2 pour exagérer légèrement la hauteur
+                                16, ['*', ['get', 'height', 10], 1.2]
                             ],
                             'fill-extrusion-base': 0,
                             'fill-extrusion-opacity': 0.8
                         }
                     });
 
-                    // Ajouter une couche pour les routes en 3D
                     map3d.addLayer({
                         'id': 'road-3d',
                         'source': 'openmaptiles',
@@ -769,13 +1091,11 @@
                         }
                     });
 
-                    // Ajouter les marqueurs des bornes à la carte 3D
                     addMarkers3D();
 
                     hideLoading();
                     console.log("Carte 3D initialisée avec succès");
 
-                    // Afficher l'indicateur de mode 3D
                     var modeIndicator = document.getElementById('mode-indicator');
                     modeIndicator.style.display = 'block';
                     setTimeout(function () {
@@ -787,7 +1107,6 @@
                     }, 3000);
                 });
 
-                // Gérer les erreurs
                 map3d.on('error', function (e) {
                     console.error('Erreur MapLibre:', e);
                     hideLoading();
@@ -807,38 +1126,30 @@
 
         // Fonction pour rafraîchir les marqueurs 3D
         function refreshMarkers3D() {
-            // Supprimer tous les marqueurs existants
             if (markers3D && markers3D.length > 0) {
                 markers3D.forEach(function (marker) {
                     marker.remove();
                 });
                 markers3D = [];
             }
-
-            // Ajouter les nouveaux marqueurs
             addMarkers3D();
         }
 
         // Fonction pour créer un élément HTML de marqueur 3D
         function createMarker3DElement(station) {
-            // Déterminer la classe CSS en fonction du statut
             var statusClass = 'available';
             if (station.status === 'occupee' || station.status === 'occupée') statusClass = 'occupied';
             if (station.status === 'maintenance') statusClass = 'maintenance';
 
-            // Ajouter une classe de pulsation pour les stations disponibles
             var pulseClass = (station.status === 'disponible') ? 'pulse' : '';
 
-            // Créer un conteneur pour le marqueur
             var container = document.createElement('div');
             container.className = 'marker-3d';
             container.setAttribute('data-station-id', station.id);
 
-            // Créer l'élément du marqueur avec le même style que les marqueurs 2D
             var markerElement = document.createElement('div');
             markerElement.className = 'station-marker ' + statusClass + ' ' + pulseClass;
 
-            // Ajouter le marqueur au conteneur
             container.appendChild(markerElement);
 
             return container;
@@ -850,25 +1161,20 @@
 
             console.log("Ajout des marqueurs à la carte 3D...");
 
-            // Parcourir les données des stations
             stationData.forEach(function (station) {
-                // Adapter les propriétés de la station
                 adaptStationProperties(station);
 
                 if (station.lat && station.lng && !isNaN(parseFloat(station.lat)) && !isNaN(parseFloat(station.lng))) {
-                    // Créer un élément HTML pour le marqueur avec le même style que les marqueurs 2D
                     var el = createMarker3DElement(station);
 
-                    // Créer un popup pour le marqueur
                     var popup = new maplibregl.Popup({
                         offset: [0, -20],
                         closeButton: true,
                         closeOnClick: false,
-                        maxWidth: '300px',
+                        maxWidth: '180px',
                         anchor: 'bottom'
                     }).setHTML(createPopupContent(station));
 
-                    // Ajouter le marqueur à la carte
                     var marker = new maplibregl.Marker({
                         element: el,
                         anchor: 'bottom'
@@ -877,32 +1183,23 @@
                         .setPopup(popup)
                         .addTo(map3d);
 
-                    // Stocker l'ID de la station dans le marqueur
                     marker.stationId = station.id;
-
-                    // Ajouter le marqueur à la liste des marqueurs 3D
                     markers3D.push(marker);
 
-                    // Ajouter un écouteur d'événement pour le clic sur le marqueur
                     el.addEventListener('click', function () {
-                        // Centrer la carte sur le marqueur
                         map3d.flyTo({
                             center: [parseFloat(station.lng), parseFloat(station.lat)],
                             zoom: 17,
                             pitch: 60,
-                            bearing: Math.random() * 180 - 90, // Rotation aléatoire pour un effet dynamique
+                            bearing: Math.random() * 180 - 90,
                             duration: 1000,
                             essential: true
                         });
 
-                        // Ouvrir le popup
                         marker.togglePopup();
-
-                        // Notifier l'application native
                         notifyNative('stationSelected', { id: station.id });
                     });
 
-                    // Ajouter des gestionnaires d'événements pour les boutons dans le popup
                     popup.on('open', function () {
                         setTimeout(function () {
                             var navButtons = document.querySelectorAll('.navigation-button');
@@ -926,7 +1223,6 @@
             }
 
             if (map3d && window.is3DView) {
-                // Fermer tous les popups dans la vue 3D
                 markers3D.forEach(function (marker) {
                     if (marker.getPopup().isOpen()) {
                         marker.togglePopup();
@@ -935,62 +1231,26 @@
             }
         }
 
-        // Fonction pour ajuster la position d'un popup
-        function adjustPopupPosition(popup) {
-            if (!map || !popup) return;
-
-            // Ne pas ajuster la position si une animation est en cours
-            if (isAnimating) return;
-
-            // Obtenir la position actuelle du popup
-            var popupLatLng = popup.getLatLng();
-
-            // Calculer la position idéale pour le popup
-            var popupHeight = 300; // Hauteur estimée du popup en pixels
-            var mapHeight = map.getSize().y;
-            var popupPoint = map.latLngToContainerPoint(popupLatLng);
-
-            // Si le popup est trop bas dans la vue, le déplacer vers le haut
-            if (popupPoint.y > mapHeight - popupHeight) {
-                var newY = Math.max(popupHeight, mapHeight - popupHeight);
-                var newPoint = L.point(popupPoint.x, newY);
-                var newLatLng = map.containerPointToLatLng(newPoint);
-                popup.setLatLng(newLatLng);
-            }
-        }
-
-        // Variables globales pour les marqueurs
-        var markers = [];
-        var markerLayer = null;
-        var activeMarkerId = null;
-
         // Fonction pour créer un marqueur de borne personnalisé
         function createStationMarker(station) {
-            // Vérifier et afficher les coordonnées pour le débogage
             console.log(`Création du marqueur pour la station ${station.id} à [${station.lat}, ${station.lng}]`);
 
-            // Vérifier si les coordonnées sont valides
             if (!station.lat || !station.lng || isNaN(parseFloat(station.lat)) || isNaN(parseFloat(station.lng))) {
                 console.error(`Coordonnées invalides pour la station ${station.id}: [${station.lat}, ${station.lng}]`);
                 return null;
             }
 
-            // Convertir explicitement en nombres flottants
             var lat = parseFloat(station.lat);
             var lng = parseFloat(station.lng);
 
-            // Déterminer la classe CSS en fonction du statut
             var statusClass = 'available';
             if (station.status === 'occupee' || station.status === 'occupée') statusClass = 'occupied';
             if (station.status === 'maintenance') statusClass = 'maintenance';
 
-            // Ajouter une classe de pulsation pour les stations disponibles
             var pulseClass = (station.status === 'disponible') ? 'pulse' : '';
 
-            // Créer l'élément HTML du marqueur
             var markerHtml = '<div class="station-marker ' + statusClass + ' ' + pulseClass + '"></div>';
 
-            // Créer l'icône personnalisée
             var customIcon = L.divIcon({
                 html: markerHtml,
                 className: '',
@@ -998,65 +1258,46 @@
                 iconAnchor: [18, 36]
             });
 
-            // Créer le marqueur avec l'icône personnalisée
             var marker = L.marker([lat, lng], {
                 icon: customIcon,
                 riseOnHover: true,
-                stationId: station.id // Stocker l'ID de la station directement dans les options du marqueur
+                stationId: station.id
             });
 
-            // Créer le contenu du popup
             var popupContent = createPopupContent(station);
 
-            // Ajouter un popup au marqueur avec des options spécifiques
             var popup = L.popup({
                 closeButton: true,
                 autoClose: false,
                 className: 'station-popup-container',
                 offset: [0, -20],
-                autoPan: false, // Désactiver le centrage automatique
-                keepInView: true
+                autoPan: false,
+                keepInView: false,
+                maxWidth: 180,
+                minWidth: 170
             }).setContent(popupContent);
 
-            // Stocker l'ID de la station dans le popup
             popup.stationId = station.id;
-
             marker.bindPopup(popup);
 
-            // Ajouter un écouteur d'événement pour le clic sur le marqueur
             marker.on('click', function (e) {
-                // Fermer tous les autres popups
                 closeAllPopups();
-
-                // Stocker l'ID du marqueur actif
                 activeMarkerId = station.id;
-
-                // Centrer immédiatement la carte sur le marqueur et ouvrir le popup
-                // Correction: Centrer et ouvrir le popup en une seule fois
                 centerMapAndOpenPopup(this);
-
-                // Notifier l'application native
                 notifyNative('stationSelected', { id: station.id });
-
-                // Empêcher la propagation de l'événement
                 L.DomEvent.stopPropagation(e);
             });
 
-            // Ajouter un écouteur d'événement pour l'ouverture du popup
             marker.on('popupopen', function (e) {
-                // Ajouter des gestionnaires d'événements pour les boutons dans le popup
                 setTimeout(function () {
                     var navButtons = document.querySelectorAll('.navigation-button');
                     navButtons.forEach(function (button) {
-                        // Supprimer les gestionnaires d'événements existants pour éviter les doublons
                         button.removeEventListener('click', navigateButtonClickHandler);
-                        // Ajouter le nouveau gestionnaire d'événements
                         button.addEventListener('click', navigateButtonClickHandler);
                     });
                 }, 100);
             });
 
-            // Ajouter un écouteur d'événement pour la fermeture du popup
             marker.on('popupclose', function (e) {
                 if (currentOpenPopup === e.popup) {
                     currentOpenPopup = null;
@@ -1070,50 +1311,11 @@
             return marker;
         }
 
-        // Fonction pour centrer la carte sur un marqueur et ouvrir son popup
-        function centerMapAndOpenPopup(marker) {
-            if (!map || !marker) return;
-
-            // Marquer comme en cours d'animation pour éviter les conflits
-            isAnimating = true;
-
-            // Obtenir la position du marqueur
-            var markerLatLng = marker.getLatLng();
-
-            // Calculer un décalage vers le haut pour que le popup soit bien visible
-            var containerPoint = map.latLngToContainerPoint(markerLatLng);
-            // Correction: Réduire le décalage vertical pour que le popup reste près du marqueur
-            containerPoint.y -= 50;
-            var targetLatLng = map.containerPointToLatLng(containerPoint);
-
-            // Animer le déplacement de la carte
-            map.flyTo(targetLatLng, 16, {
-                animate: true,
-                duration: 0.5, // Durée réduite pour une réponse plus rapide
-                easeLinearity: 0.15,
-                noMoveStart: true
-            });
-
-            // Ouvrir le popup immédiatement
-            marker.openPopup();
-            currentOpenPopup = marker.getPopup();
-
-            // Réinitialiser le flag d'animation après la fin de l'animation
-            setTimeout(function () {
-                isAnimating = false;
-                // Correction: Ajuster la position du popup après l'animation
-                if (currentOpenPopup) {
-                    adjustPopupPosition(currentOpenPopup);
-                }
-            }, 600);
-        }
-
         // Gestionnaire d'événements pour le clic sur le bouton de navigation
         function navigateButtonClickHandler(event) {
             event.preventDefault();
             event.stopPropagation();
 
-            // Extraire l'ID de la station à partir de l'attribut data-station-id
             var stationId = this.getAttribute('data-station-id');
             console.log("Bouton Y aller cliqué pour la station:", stationId);
 
@@ -1125,7 +1327,6 @@
 
         // Fonction pour créer le contenu du popup
         function createPopupContent(station) {
-            // Déterminer la classe CSS en fonction du statut
             var statusClass = 'status-available';
             var statusText = 'Disponible';
 
@@ -1137,7 +1338,6 @@
                 statusText = 'Maintenance';
             }
 
-            // Déterminer le texte de la dernière utilisation
             var lastUsageText = 'Il y a 2h';
             var lastUsageClass = '';
 
@@ -1145,7 +1345,6 @@
                 lastUsageText = 'Indisponible';
                 lastUsageClass = 'unavailable';
             } else if (station.last_used_at) {
-                // Formater la date de dernière utilisation si disponible
                 var lastUsedDate = new Date(station.last_used_at);
                 var now = new Date();
                 var diffMs = now - lastUsedDate;
@@ -1159,22 +1358,15 @@
                 }
             }
 
-            // Icône pour la puissance (SVG inline)
             var powerIcon = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l3-8z"/></svg>';
-
-            // Icône GPS pour le bouton de navigation
             var navigationIcon = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>';
 
-            // Construire l'adresse complète
             var fullAddress = station.address;
             if (station.postal_code && station.city) {
                 fullAddress += ', ' + station.postal_code + ' ' + station.city;
             }
 
-            // Déterminer la puissance à afficher
             var power = station.power || station.power_output || 0;
-
-            // Déterminer le pourcentage de charge
             var percentage = station.percentage || station.charge_percentage || 0;
 
             return '<div class="station-popup">' +
@@ -1185,13 +1377,9 @@
                 '<div class="station-popup-body">' +
                 '<div class="power-info">' +
                 '<div class="power-icon">' + powerIcon + '</div>' +
-                '<div class="power-details">' +
                 '<div class="power-value">' + power + ' kW</div>' +
-                '<div class="power-type">Puissance</div>' +
+                '<div class="power-badge">RAPIDE</div>' +
                 '</div>' +
-                '<div class="power-badge">Rapide</div>' +
-                '</div>' +
-                '<div class="status-container">' +
                 '<div class="status-label">État actuel</div>' +
                 '<div class="status-value ' + statusClass + '">' + statusText + ' (' + percentage + '%)</div>' +
                 '<div class="progress-container">' +
@@ -1200,7 +1388,6 @@
                 '<div class="progress-labels">' +
                 '<span>0%</span>' +
                 '<span>100%</span>' +
-                '</div>' +
                 '</div>' +
                 '<div class="usage-info">' +
                 '<span class="usage-label">Dernière utilisation</span>' +
@@ -1220,42 +1407,33 @@
                     return false;
                 }
 
-                // Créer la couche de marqueurs si elle n'existe pas
                 if (!markerLayer) {
                     markerLayer = L.layerGroup().addTo(map);
                 } else {
-                    // Vider la couche de marqueurs
                     markerLayer.clearLayers();
                 }
 
                 markers = [];
 
-                // Vérifier si stationData est défini et non vide
                 if (!stationData || stationData.length === 0) {
                     console.warn("Aucune donnée de station disponible");
-                    // Centrer sur une position par défaut si aucune station
-                    map.setView([45.899, 6.129], 14); // Annecy par défaut
+                    map.setView([45.899, 6.129], 14);
                     return false;
                 }
 
                 console.log("Données des stations:", JSON.stringify(stationData));
 
-                // Calculer les limites pour centrer la carte
                 var bounds = L.latLngBounds();
                 var validStations = [];
 
-                // Afficher l'indicateur de chargement
                 document.getElementById('loading-indicator').style.display = 'block';
 
-                // Traiter chaque station
                 for (let i = 0; i < stationData.length; i++) {
                     let station = stationData[i];
 
-                    // Adapter les noms de propriétés selon la structure de la base de données
                     adaptStationProperties(station);
 
                     if (station.lat && station.lng && !isNaN(parseFloat(station.lat)) && !isNaN(parseFloat(station.lng))) {
-                        // Convertir explicitement en nombres flottants
                         station.lat = parseFloat(station.lat);
                         station.lng = parseFloat(station.lng);
                         bounds.extend([station.lat, station.lng]);
@@ -1265,10 +1443,8 @@
                     }
                 }
 
-                // Masquer l'indicateur de chargement
                 document.getElementById('loading-indicator').style.display = 'none';
 
-                // Ajouter les nouveaux marqueurs pour les stations valides
                 validStations.forEach(function (station) {
                     var marker = createStationMarker(station);
                     if (marker) {
@@ -1277,18 +1453,16 @@
                     }
                 });
 
-                // Centrer la carte sur les marqueurs si nous avons des stations valides
                 if (validStations.length > 0) {
                     map.fitBounds(bounds, {
                         padding: [50, 50],
                         animate: true,
-                        duration: 1.0, // Durée plus longue pour une animation plus fluide
-                        easeLinearity: 0.15 // Valeur plus basse pour une animation plus douce
+                        duration: 1.0,
+                        easeLinearity: 0.15
                     });
                     console.log("Carte centrée sur les bornes. Limites:", bounds.toString());
                 } else {
-                    // Centrer sur une position par défaut si aucune station valide
-                    map.setView([45.899, 6.129], 14); // Annecy par défaut
+                    map.setView([45.899, 6.129], 14);
                     console.warn("Aucune station valide trouvée, centrage sur Annecy");
                 }
 
@@ -1303,7 +1477,6 @@
 
         // Fonction pour adapter les propriétés des stations selon la structure de la base de données
         function adaptStationProperties(station) {
-            // Adapter les noms de propriétés si nécessaire
             if (station.borne_id !== undefined && station.id === undefined) {
                 station.id = station.borne_id;
             }
@@ -1324,12 +1497,10 @@
                 station.percentage = station.charge_percentage;
             }
 
-            // Adapter le statut
             if (station.status !== undefined) {
                 station.status = station.status.toLowerCase();
             }
 
-            // S'assurer que les valeurs par défaut sont définies
             if (!station.power) station.power = 0;
             if (!station.percentage) station.percentage = 0;
             if (!station.status) station.status = 'disponible';
@@ -1342,44 +1513,35 @@
             try {
                 if (newData && Array.isArray(newData)) {
                     console.log("Mise à jour des données des bornes:", JSON.stringify(newData));
+                    lastUpdateTimestamp = Date.now();
                     stationData = newData;
 
-                    // Afficher l'indicateur de chargement
                     document.getElementById('loading-indicator').style.display = 'block';
 
-                    // Adapter les propriétés de chaque station
                     for (let i = 0; i < stationData.length; i++) {
                         let station = stationData[i];
 
-                        // Adapter les propriétés de la station
                         adaptStationProperties(station);
 
                         if (station.lat && station.lng) {
-                            // Convertir explicitement en nombres flottants
                             station.lat = parseFloat(station.lat);
                             station.lng = parseFloat(station.lng);
 
-                            // Vérifier si les coordonnées sont valides
                             if (isNaN(station.lat) || isNaN(station.lng)) {
                                 console.error(`Coordonnées invalides pour la station ${station.id}: [${station.lat}, ${station.lng}]`);
                             }
                         }
                     }
 
-                    // Masquer l'indicateur de chargement
                     document.getElementById('loading-indicator').style.display = 'none';
 
-                    // Mettre à jour la carte 2D
                     if (map && markerLayer && !window.is3DView) {
-                        // Stocker l'ID du marqueur actif avant de rafraîchir
                         var previousActiveId = activeMarkerId;
 
-                        // Rafraîchir les marqueurs
                         markerLayer.clearLayers();
                         await addMarkersToMap();
                         console.log('Marqueurs mis à jour avec les nouvelles données (2D)');
 
-                        // Si un marqueur était actif, le réactiver
                         if (previousActiveId !== null) {
                             setTimeout(function () {
                                 zoomToStation(previousActiveId);
@@ -1387,9 +1549,7 @@
                         }
                     }
 
-                    // Mettre à jour la carte 3D si elle est active
                     if (map3d && map3dInitialized && window.is3DView) {
-                        // Rafraîchir les marqueurs 3D
                         refreshMarkers3D();
                         console.log('Marqueurs mis à jour avec les nouvelles données (3D)');
                     }
@@ -1421,7 +1581,6 @@
                 showLoading();
 
                 if (window.is3DView && map3d) {
-                    // Utiliser la géolocalisation de MapLibre
                     if (navigator.geolocation) {
                         navigator.geolocation.getCurrentPosition(function (position) {
                             var lat = position.coords.latitude;
@@ -1432,10 +1591,9 @@
                                 zoom: 16,
                                 pitch: 60,
                                 bearing: 0,
-                                duration: 1500 // Animation plus longue pour plus de fluidité
+                                duration: 1500
                             });
 
-                            // Ajouter un marqueur pour la position de l'utilisateur
                             var el = document.createElement('div');
                             el.style.width = '16px';
                             el.style.height = '16px';
@@ -1448,14 +1606,11 @@
                                 .setLngLat([lng, lat])
                                 .addTo(map3d);
 
-                            // Supprimer le marqueur après 10 secondes
                             setTimeout(function () {
                                 userMarker.remove();
                             }, 10000);
 
-                            // Notifier l'application native
                             notifyNative('locationUpdated', { lat: lat, lng: lng });
-
                             hideLoading();
                         }, function (error) {
                             console.error('Erreur de géolocalisation:', error);
@@ -1467,20 +1622,17 @@
                         hideLoading();
                     }
                 } else if (map) {
-                    // Utiliser la géolocalisation de Leaflet
                     if (navigator.geolocation) {
                         navigator.geolocation.getCurrentPosition(function (position) {
                             var lat = position.coords.latitude;
                             var lng = position.coords.longitude;
 
-                            // Utiliser flyTo pour une animation plus fluide
                             map.flyTo([lat, lng], 15, {
                                 animate: true,
-                                duration: 1.2, // Durée plus longue pour une animation plus fluide
-                                easeLinearity: 0.15 // Valeur plus basse pour une animation plus douce
+                                duration: 1.2,
+                                easeLinearity: 0.15
                             });
 
-                            // Ajouter un marqueur pour la position de l'utilisateur
                             var userMarker = L.marker([lat, lng], {
                                 icon: L.divIcon({
                                     html: '<div style="background-color: #3388ff; width: 16px; height: 16px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 8px rgba(0,0,0,0.5);"></div>',
@@ -1490,7 +1642,6 @@
                                 })
                             }).addTo(map);
 
-                            // Ajouter un cercle pour montrer la précision
                             var accuracyCircle = L.circle([lat, lng], {
                                 radius: position.coords.accuracy || 100,
                                 color: '#3388ff',
@@ -1499,15 +1650,12 @@
                                 weight: 2
                             }).addTo(map);
 
-                            // Supprimer le marqueur et le cercle après 10 secondes
                             setTimeout(function () {
                                 map.removeLayer(userMarker);
                                 map.removeLayer(accuracyCircle);
                             }, 10000);
 
-                            // Notifier l'application native
                             notifyNative('locationUpdated', { lat: lat, lng: lng });
-
                             hideLoading();
                         }, function (error) {
                             console.error('Erreur de géolocalisation:', error);
@@ -1540,14 +1688,14 @@
                         zoom: map3d.getZoom() + 0.5,
                         duration: 300,
                         easing: function (t) {
-                            return t * (2 - t); // Fonction d'accélération pour une animation plus douce
+                            return t * (2 - t);
                         }
                     });
                 } else if (map) {
                     map.zoomIn(0.5, {
                         animate: true,
-                        duration: 0.3, // Durée plus courte pour une réponse plus rapide
-                        easeLinearity: 0.15 // Valeur plus basse pour une animation plus douce
+                        duration: 0.3,
+                        easeLinearity: 0.15
                     });
                 }
                 return true;
@@ -1564,14 +1712,14 @@
                         zoom: map3d.getZoom() - 0.5,
                         duration: 300,
                         easing: function (t) {
-                            return t * (2 - t); // Fonction d'accélération pour une animation plus douce
+                            return t * (2 - t);
                         }
                     });
                 } else if (map) {
                     map.zoomOut(0.5, {
                         animate: true,
-                        duration: 0.3, // Durée plus courte pour une réponse plus rapide
-                        easeLinearity: 0.15 // Valeur plus basse pour une animation plus douce
+                        duration: 0.3,
+                        easeLinearity: 0.15
                     });
                 }
                 return true;
@@ -1587,19 +1735,14 @@
                 window.is3DView = !window.is3DView;
 
                 if (window.is3DView) {
-                    // Passer à la vue 3D
                     showLoading();
 
-                    // Initialiser la carte 3D si ce n'est pas déjà fait
                     if (!map3dInitialized) {
                         initMap3D();
                     } else {
                         document.getElementById('map3d').style.display = 'block';
-
-                        // Rafraîchir les marqueurs 3D
                         refreshMarkers3D();
 
-                        // Afficher l'indicateur de mode 3D
                         var modeIndicator = document.getElementById('mode-indicator');
                         modeIndicator.style.display = 'block';
                         setTimeout(function () {
@@ -1611,32 +1754,20 @@
                         }, 3000);
                     }
 
-                    // Masquer la carte 2D
                     document.getElementById('map').style.display = 'none';
-
-                    // Notifier l'application native
                     notifyNative('viewChanged', { mode: '3D' });
-
                     hideLoading();
                     return true;
                 } else {
-                    // Revenir à la vue 2D
                     showLoading();
-
-                    // Masquer la carte 3D
                     document.getElementById('map3d').style.display = 'none';
-
-                    // Afficher la carte 2D
                     document.getElementById('map').style.display = 'block';
 
-                    // Rafraîchir la carte 2D
                     if (map) {
                         map.invalidateSize();
                     }
 
-                    // Notifier l'application native
                     notifyNative('viewChanged', { mode: '2D' });
-
                     hideLoading();
                     return false;
                 }
@@ -1650,7 +1781,6 @@
         // Fonction pour recentrer la carte
         function centerMap() {
             try {
-                // Si nous avons des stations, centrer sur les bornes
                 if (stationData && stationData.length > 0) {
                     var validStations = stationData.filter(function (station) {
                         return station.lat && station.lng && !isNaN(parseFloat(station.lat)) && !isNaN(parseFloat(station.lng));
@@ -1658,7 +1788,6 @@
 
                     if (validStations.length > 0) {
                         if (window.is3DView && map3d) {
-                            // Calculer le centre et les limites pour la carte 3D
                             var bounds = new maplibregl.LngLatBounds();
                             validStations.forEach(function (station) {
                                 bounds.extend([parseFloat(station.lng), parseFloat(station.lat)]);
@@ -1666,13 +1795,12 @@
 
                             map3d.fitBounds(bounds, {
                                 padding: 50,
-                                duration: 1500, // Animation plus longue pour plus de fluidité
+                                duration: 1500,
                                 easing: function (t) {
-                                    return t * (2 - t); // Fonction d'accélération pour une animation plus douce
+                                    return t * (2 - t);
                                 }
                             });
                         } else if (map) {
-                            // Calculer les limites pour la carte 2D
                             var bounds = L.latLngBounds();
                             validStations.forEach(function (station) {
                                 bounds.extend([parseFloat(station.lat), parseFloat(station.lng)]);
@@ -1681,29 +1809,28 @@
                             map.flyToBounds(bounds, {
                                 padding: [50, 50],
                                 animate: true,
-                                duration: 1.2, // Durée plus longue pour une animation plus fluide
-                                easeLinearity: 0.15 // Valeur plus basse pour une animation plus douce
+                                duration: 1.2,
+                                easeLinearity: 0.15
                             });
                         }
                         return true;
                     }
                 }
 
-                // Si pas de stations valides, centrer sur une position par défaut (Annecy)
                 if (window.is3DView && map3d) {
                     map3d.flyTo({
                         center: [6.129, 45.899],
                         zoom: 14,
-                        duration: 1500, // Animation plus longue pour plus de fluidité
+                        duration: 1500,
                         easing: function (t) {
-                            return t * (2 - t); // Fonction d'accélération pour une animation plus douce
+                            return t * (2 - t);
                         }
                     });
                 } else if (map) {
                     map.flyTo([45.899, 6.129], 14, {
                         animate: true,
-                        duration: 1.2, // Durée plus longue pour une animation plus fluide
-                        easeLinearity: 0.15 // Valeur plus basse pour une animation plus douce
+                        duration: 1.2,
+                        easeLinearity: 0.15
                     });
                 }
                 return true;
@@ -1718,29 +1845,25 @@
             try {
                 console.log("Zoom to station: " + stationId);
 
-                // Trouver la station correspondante
                 var station = stationData.find(function (s) {
                     return s.id === parseInt(stationId) || s.borne_id === parseInt(stationId);
                 });
 
                 if (station) {
-                    console.log("Station found:", station);
-
-                    // Adapter les propriétés de la station si nécessaire
+                    console.log("Station trouvée pour le zoom:", station);
                     adaptStationProperties(station);
+                    activeMarkerId = station.id;
 
                     if (window.is3DView && map3d) {
-                        // Zoomer sur la station en 3D
                         map3d.flyTo({
                             center: [parseFloat(station.lng), parseFloat(station.lat)],
                             zoom: 17,
                             pitch: 60,
-                            bearing: Math.random() * 180 - 90, // Rotation aléatoire pour un effet dynamique
+                            bearing: Math.random() * 180 - 90,
                             duration: 1000,
                             essential: true
                         });
 
-                        // Trouver le marqueur 3D correspondant et ouvrir son popup
                         var marker3D = markers3D.find(function (m) {
                             return m.stationId === parseInt(stationId);
                         });
@@ -1751,33 +1874,38 @@
                             }, 1000);
                         }
                     } else if (map) {
-                        // Fermer tous les popups existants
                         closeAllPopups();
 
-                        // Trouver le marqueur correspondant
                         var marker = markers.find(function (m) {
                             return m.options.stationId === parseInt(stationId);
                         });
 
                         if (marker) {
-                            // Centrer la carte sur le marqueur et ouvrir son popup
-                            centerMapAndOpenPopup(marker);
+                            // Utiliser le centrage parfait amélioré
+                            centerMarkerPerfectly(marker);
                         } else {
-                            // Si le marqueur n'est pas trouvé, centrer sur les coordonnées de la station
-                            map.flyTo([station.lat, station.lng], 16, {
-                                animate: true,
-                                duration: 0.8,
-                                easeLinearity: 0.15
-                            });
+                            // Si le marqueur n'est pas trouvé, créer un nouveau marqueur temporaire
+                            console.log("Marqueur non trouvé, création d'un marqueur temporaire");
+                            var tempMarker = createStationMarker(station);
+                            if (tempMarker) {
+                                markerLayer.addLayer(tempMarker);
+                                markers.push(tempMarker);
+                                centerMarkerPerfectly(tempMarker);
+                            } else {
+                                // Fallback si la création du marqueur échoue
+                                map.flyTo([station.lat, station.lng], 17, {
+                                    animate: true,
+                                    duration: 0.8,
+                                    easeLinearity: 0.15
+                                });
+                            }
                         }
                     }
 
-                    // Notifier l'application native
                     notifyNative('stationSelected', { id: stationId });
-
                     return true;
                 } else {
-                    console.error("Station not found with ID:", stationId);
+                    console.error("Station non trouvée avec l'ID:", stationId);
                 }
 
                 return false;
@@ -1792,42 +1920,33 @@
             try {
                 console.log("Navigation vers la station: " + stationId);
 
-                // Trouver la station correspondante
                 var station = stationData.find(function (s) {
                     return s.id === parseInt(stationId) || s.borne_id === parseInt(stationId);
                 });
 
                 if (station) {
                     console.log("Station trouvée pour la navigation:", station);
-
-                    // Adapter les propriétés de la station si nécessaire
                     adaptStationProperties(station);
 
-                    // Construire l'adresse complète
                     var fullAddress = station.address || "";
                     if (station.postal_code && station.city) {
                         fullAddress += ', ' + station.postal_code + ' ' + station.city;
                     }
 
-                    // Coordonnées pour la navigation
                     var lat = parseFloat(station.lat);
                     var lng = parseFloat(station.lng);
 
-                    // Créer des liens directs pour Google Maps et Apple Maps
                     var googleMapsUrl = "https://www.google.com/maps/dir/?api=1&destination=" + lat + "," + lng;
                     var appleMapsUrl = "maps://?daddr=" + lat + "," + lng + "&dirflg=d";
 
-                    // Déterminer la plateforme pour choisir le bon lien
                     var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
                     var navigationUrl = isIOS ? appleMapsUrl : googleMapsUrl;
 
-                    // Essayer d'ouvrir directement l'application de navigation
                     var linkElement = document.createElement('a');
                     linkElement.href = navigationUrl;
                     linkElement.target = '_blank';
                     linkElement.click();
 
-                    // Notifier l'application native pour qu'elle gère l'ouverture de l'application de navigation
                     notifyNative('navigate', {
                         id: stationId,
                         address: fullAddress,
@@ -1852,13 +1971,11 @@
         function notifyNative(action, data) {
             try {
                 if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.jsBridge) {
-                    // iOS
                     window.webkit.messageHandlers.jsBridge.postMessage({
                         action: action,
                         data: data
                     });
                 } else if (window.jsBridge) {
-                    // Android
                     window.jsBridge.receiveMessage(JSON.stringify({
                         action: action,
                         data: data
@@ -1891,10 +2008,20 @@
         window.updateStationData = updateStationData;
         window.closeAllPopups = closeAllPopups;
 
+        // Nouvelles fonctions pour la mise à jour en temps réel
+        window.handleRealTimeUpdate = handleRealTimeUpdate;
+        window.startRealTimeUpdates = startRealTimeUpdates;
+        window.stopRealTimeUpdates = stopRealTimeUpdates;
+
         // Initialiser la carte quand le DOM est chargé
         document.addEventListener('DOMContentLoaded', function () {
             console.log("DOM chargé, initialisation de la carte");
             setTimeout(initMap, 500);
+        });
+
+        // Nettoyer les intervalles quand la page se ferme
+        window.addEventListener('beforeunload', function () {
+            stopRealTimeUpdates();
         });
     </script>
 </body>

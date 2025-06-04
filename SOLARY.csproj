@@ -69,6 +69,11 @@
 		<PackageReference Include="Microsoft.Maui.Essentials" Version="8.0.3" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.0" />
 	</ItemGroup>
+	<ItemGroup>
+	  <MauiXaml Update="Views\CodePage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	</ItemGroup>
 
 	<!-- Forcer la restauration des packages à la version spécifiée -->
 	<PropertyGroup>

@@ -4,25 +4,52 @@ namespace SOLARY.Views;
 
 public partial class LoginPage : ContentPage
 {
-	public LoginPage()
-	{
-		InitializeComponent();
-        BindingContext = new LoginViewModel(); // Définissez le ViewModel ici
-
+    public LoginPage()
+    {
+        InitializeComponent();
+        BindingContext = new LoginViewModel();
     }
 
-    private void TogglePasswordVisibility(object sender, EventArgs e)
+    protected override void OnAppearing()
+    {
+        base.OnAppearing();
+        ConfigureStatusBar();
+    }
+
+    private void ConfigureStatusBar()
+    {
+        try
+        {
+            // Pour iOS - configuration supplémentaire si nécessaire
+            if (DeviceInfo.Platform == DevicePlatform.iOS)
+            {
+#if IOS
+                // La configuration est déjà dans Info.plist, mais on peut forcer ici si nécessaire
+                var viewController = Microsoft.Maui.ApplicationModel.Platform.GetCurrentUIViewController();
+                if (viewController != null)
+                {
+                    viewController.SetNeedsStatusBarAppearanceUpdate();
+                }
+#endif
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Erreur lors de la configuration de la barre de statut: {ex.Message}");
+        }
+    }
+
+    private void TogglePasswordVisibility(object? sender, EventArgs e)
     {
         if (PasswordEntry.IsPassword)
         {
             PasswordEntry.IsPassword = false;
-            EyeIcon.Source = "eye_open.png"; // Icône de l'œil ouvert
+            EyeIcon.Source = "eye_open.png";
         }
         else
         {
             PasswordEntry.IsPassword = true;
-            EyeIcon.Source = "eye_closed.png"; // Icône de l'œil fermé
+            EyeIcon.Source = "eye_closed.png";
         }
     }
-
 }

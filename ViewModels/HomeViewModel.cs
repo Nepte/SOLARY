@@ -9,8 +9,8 @@ namespace SOLARY.ViewModels
 {
     public class HomeViewModel : INotifyPropertyChanged
     {
-        private string _userName;
-        private string _todayDate;
+        private string _userName = string.Empty;
+        private string _todayDate = string.Empty;
         private double _currentKwh;
         private int _solarUsagePercent;
         private double _solarUsageProgress;
@@ -20,7 +20,7 @@ namespace SOLARY.ViewModels
         private double _co2Reduction;
         private double _panelGenerated;
         private bool _isDirectMode = true;
-        private IDrawable _graphDrawable;
+        private IDrawable? _graphDrawable;
 
         public string UserName
         {
@@ -88,7 +88,7 @@ namespace SOLARY.ViewModels
             set => SetProperty(ref _isDirectMode, value);
         }
 
-        public IDrawable GraphDrawable
+        public IDrawable? GraphDrawable
         {
             get => _graphDrawable;
             set => SetProperty(ref _graphDrawable, value);
@@ -111,11 +111,11 @@ namespace SOLARY.ViewModels
         }
 
         #region INotifyPropertyChanged
-        public event PropertyChangedEventHandler PropertyChanged;
+        public event PropertyChangedEventHandler? PropertyChanged;
 
         protected bool SetProperty<T>(ref T backingStore, T value,
             [CallerMemberName] string propertyName = "",
-            Action onChanged = null)
+            Action? onChanged = null)
         {
             if (EqualityComparer<T>.Default.Equals(backingStore, value))
                 return false;
@@ -136,7 +136,7 @@ namespace SOLARY.ViewModels
     // Convertisseur pour changer la couleur en fonction du mode Direct/Indirect
     public class BoolToColorConverter : IValueConverter
     {
-        public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+        public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
             if (value is bool isDirectMode && parameter is string colors)
             {
@@ -149,7 +149,7 @@ namespace SOLARY.ViewModels
             return Colors.Black;
         }
 
-        public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+        public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
             throw new NotImplementedException();
         }
@@ -157,19 +157,16 @@ namespace SOLARY.ViewModels
 
     public class ProgressWidthConverter : IValueConverter
     {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
-            if (value is double containerWidth && parameter is string progressStr)
+            if (value is double progress && parameter is double containerWidth)
             {
-                if (double.TryParse(progressStr, out double progress))
-                {
-                    return containerWidth * progress;
-                }
+                return containerWidth * progress;
             }
             return 0;
         }
 
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
             throw new NotImplementedException();
         }

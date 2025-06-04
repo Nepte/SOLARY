@@ -13,6 +13,9 @@ using System.Windows.Input;
 using Microsoft.Maui.Graphics;
 using Microsoft.Maui;
 using Microsoft.Maui.Controls.Shapes;
+using SOLARY.Model;
+using SOLARY.Services;
+using System.Timers;
 
 namespace SOLARY.Views
 {
@@ -23,16 +26,32 @@ namespace SOLARY.Views
         private VerticalStackLayout? _stationListLayout;
         private int _selectedStationId = -1;
         private Dictionary<int, Border> _stationCards = new Dictionary<int, Border>();
+        private Dictionary<int, VerticalStackLayout> _casierContainers = new Dictionary<int, VerticalStackLayout>();
         private bool _isFullListMode = false;
 
-        // Ajouter ces variables de classe
+        // Variables de classe existantes
         private ScrollView? _mainScrollView;
         private Grid? _mapContainer;
         private double _lastScrollY = 0;
 
+        // Services
+        private readonly ICasierService _casierService;
+        private readonly IUserService _userService;
+
+        // Variables pour la mise à jour en temps réel
+        private System.Timers.Timer? _casierUpdateTimer;
+        private bool _isUpdatingCasiers = false;
+
+        // Utilisateur actuel
+        private User? _currentUser;
+
         public MapPage()
         {
             InitializeComponent();
+
+            // Initialiser les services
+            _casierService = new CasierService();
+            _userService = new UserService();
 
             // Récupérer la référence au layout des stations
             _stationListLayout = this.FindByName<VerticalStackLayout>("StationListLayout");
@@ -51,52 +70,66 @@ namespace SOLARY.Views
             // Initialiser la carte après le chargement de la page
             this.Loaded += OnPageLoaded;
 
-            // Ajouter un gestionnaire pour le défilement de la liste
-            var stationListScroll = this.FindByName<ScrollView>("StationListScroll");
-            if (stationListScroll != null)
-            {
-                //stationListScroll.Scrolled += OnStationListScrolled;
-            }
-
             // Ajouter un gestionnaire pour le scroll principal
             var mainScrollView = this.FindByName<ScrollView>("MainScrollView");
             if (mainScrollView != null)
             {
                 mainScrollView.Scrolled += OnMainScrolled;
             }
+
+            // Initialiser l'utilisateur actuel
+            InitializeCurrentUser();
         }
 
-        // Modifier la méthode OnMainScrolled pour gérer la visibilité de la barre de recherche
+        private async void InitializeCurrentUser()
+        {
+            try
+            {
+                if (SessionService.IsLoggedIn)
+                {
+                    int userId = SessionService.CurrentUserId.Value;
+                    _currentUser = await _userService.GetUserById(userId);
+                    Debug.WriteLine($"[MapPage] Utilisateur connecté: {_currentUser?.Email ?? "Inconnu"} (ID: {userId})");
+                }
+                else
+                {
+                    Debug.WriteLine("[MapPage] Aucun utilisateur connecté");
+                    // Rediriger vers la page de connexion
+                    await DisplayAlert("Connexion requise", "Vous devez être connecté pour accéder à cette page.", "OK");
+                    await Shell.Current.GoToAsync("//LoginPage");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[MapPage] Erreur lors de l'initialisation de l'utilisateur: {ex.Message}");
+                await DisplayAlert("Erreur", "Impossible de charger les informations utilisateur.", "OK");
+            }
+        }
+
         private void OnMainScrolled(object? sender, ScrolledEventArgs e)
         {
             if (_mapContainer == null) return;
 
-            // Ajouter un garde-fou pour éviter les boucles infinies
             if (Math.Abs(e.ScrollY - _lastScrollY) < 1)
             {
                 return;
             }
 
-            // Calculer la direction du scroll
             bool isScrollingDown = e.ScrollY > _lastScrollY;
             _lastScrollY = e.ScrollY;
 
-            // Définir des limites claires pour la hauteur de la carte
             double minHeight = 100;
             double maxHeight = 450;
             double currentHeight = _mapContainer.HeightRequest;
 
-            // Gérer la visibilité de la barre de recherche
             var searchBar = this.FindByName<SearchBar>("SearchBar");
             if (searchBar != null)
             {
-                // Si on est en haut de la page, afficher la barre de recherche
                 if (e.ScrollY < 50)
                 {
                     searchBar.IsVisible = true;
                     searchBar.Opacity = 1;
                 }
-                // Si on descend, masquer progressivement la barre de recherche
                 else if (isScrollingDown && e.ScrollY > 50)
                 {
                     double opacity = Math.Max(0, 1 - ((e.ScrollY - 50) / 100));
@@ -105,70 +138,62 @@ namespace SOLARY.Views
                 }
             }
 
-            // Si on scrolle vers le bas et que la carte est visible
             if (isScrollingDown && e.ScrollY > 50)
             {
-                // Réduire progressivement la hauteur de la carte, mais pas en dessous du minimum
                 double newHeight = Math.Max(minHeight, maxHeight - (e.ScrollY - 50) * 0.5);
-
-                // Ne mettre à jour que si le changement est significatif
                 if (Math.Abs(newHeight - currentHeight) > 5)
                 {
                     _mapContainer.HeightRequest = newHeight;
                 }
             }
-            // Si on scrolle vers le haut et qu'on est près du haut
             else if (!isScrollingDown && e.ScrollY < 200)
             {
-                // Restaurer progressivement la hauteur de la carte, mais pas au-dessus du maximum
                 double newHeight = Math.Min(maxHeight, minHeight + (200 - e.ScrollY) * 1.75);
-
-                // Ne mettre à jour que si le changement est significatif
                 if (Math.Abs(newHeight - currentHeight) > 5)
                 {
                     _mapContainer.HeightRequest = newHeight;
                 }
             }
 
-            // Si on est tout en haut, restaurer complètement la carte
             if (e.ScrollY < 10)
             {
                 _mapContainer.HeightRequest = maxHeight;
             }
 
-            // Si on est tout en bas, fixer la hauteur minimale pour éviter les rebonds
             if (e.ScrollY > 1000)
             {
                 _mapContainer.HeightRequest = minHeight;
             }
         }
 
-        // Modifier la méthode OnPageLoaded pour initialiser les références
-        private void OnPageLoaded(object? sender, EventArgs e)
+        private async void OnPageLoaded(object? sender, EventArgs e)
         {
             InitializeMap();
 
-            // Récupérer les références aux éléments UI
             _mainScrollView = this.FindByName<ScrollView>("MainScrollView");
             _mapContainer = this.FindByName<Grid>("MapContainer");
 
-            // Modifier la couleur de fond de la WebView
             if (MapWebView != null)
             {
                 MapWebView.BackgroundColor = Colors.Black;
             }
 
-            // Ajouter les bornes à la liste après l'initialisation des composants
+            // Charger les casiers pour chaque borne
             if (_stationListLayout != null && _viewModel != null)
             {
-                // S'assurer que la liste est vide avant d'ajouter les bornes
                 _stationListLayout.Clear();
                 _stationCards.Clear();
+                _casierContainers.Clear();
 
-                // Trier les bornes par disponibilité (disponibles d'abord)
+                // Charger les casiers pour chaque borne
+                foreach (var borneModel in _viewModel.Bornes)
+                {
+                    var casiers = await _casierService.GetCasiersByBorneIdAsync(borneModel.BorneId);
+                    borneModel.Casiers = casiers ?? new List<Casier>();
+                }
+
                 var sortedBornes = _viewModel.Bornes.OrderByDescending(b => b.IsAvailable).ToList();
 
-                // Ajouter les bornes à la liste
                 foreach (var borne in sortedBornes)
                 {
                     var stationCard = CreateStationCard(borne);
@@ -177,11 +202,8 @@ namespace SOLARY.Views
                 }
             }
 
-            // Configurer la WebView pour désactiver le scroll et les interactions qui pourraient interférer
             MapWebView?.EvaluateJavaScriptAsync(@"
                 document.body.style.overflow = 'hidden';
-        
-                // Désactiver le scroll sur la carte
                 if (map) {
                     map.scrollWheelZoom.disable();
                     map.dragging.disable();
@@ -190,27 +212,13 @@ namespace SOLARY.Views
                     map.boxZoom.disable();
                     map.keyboard.disable();
                 }
-        
-                // Réactiver uniquement via les boutons
-                window.zoomIn = function() {
-                    if (map) {
-                        map.dragging.enable();
-                        map.zoomIn();
-                        setTimeout(function() { map.dragging.disable(); }, 100);
-                    }
-                };
-        
-                window.zoomOut = function() {
-                    if (map) {
-                        map.dragging.enable();
-                        map.zoomOut();
-                        setTimeout(function() { map.dragging.disable(); }, 100);
-                    }
-                };
             ");
+
+            // Démarrer les mises à jour en temps réel
+            StartRealTimeUpdates();
         }
 
-        // Nouvelle implémentation de CreateStationCard pour correspondre au design souhaité
+        // NOUVELLE méthode CreateStationCard avec support des casiers
         private Border CreateStationCard(BorneModel borne)
         {
             // Créer la bordure principale (carte)
@@ -228,7 +236,38 @@ namespace SOLARY.Views
                 }
             };
 
-            // Créer le contenu de la carte
+            // Conteneur principal vertical
+            var mainContainer = new VerticalStackLayout
+            {
+                Spacing = 0
+            };
+
+            // Créer le contenu principal de la carte (existant)
+            var contentGrid = CreateMainStationContent(borne);
+            mainContainer.Add(contentGrid);
+
+            // Ajouter le conteneur des casiers (initialement masqué)
+            if (borne.HasCasiers)
+            {
+                var casierContainer = CreateCasierContainer(borne);
+                _casierContainers[borne.BorneId] = casierContainer;
+                mainContainer.Add(casierContainer);
+            }
+
+            stationBorder.Content = mainContainer;
+
+            // Ajouter un effet visuel pour le survol
+            var tapGesture = new TapGestureRecognizer();
+            tapGesture.Tapped += (s, e) => {
+                ToggleStationSelection(borne.Id);
+            };
+            stationBorder.GestureRecognizers.Add(tapGesture);
+
+            return stationBorder;
+        }
+
+        private Grid CreateMainStationContent(BorneModel borne)
+        {
             var contentGrid = new Grid
             {
                 ColumnDefinitions = new ColumnDefinitionCollection
@@ -246,24 +285,23 @@ namespace SOLARY.Views
             if (borne.IsInMaintenance)
             {
                 batteryImageSource = "battery_red.png";
-                batteryColor = Color.FromArgb("#F44336"); // Rouge
+                batteryColor = Color.FromArgb("#F44336");
             }
             else if (borne.IsAvailable)
             {
                 batteryImageSource = "battery_yellow.png";
-                batteryColor = Color.FromArgb("#FFD602"); // Jaune
+                batteryColor = Color.FromArgb("#FFD602");
             }
             else
             {
                 batteryImageSource = "battery_grey.png";
-                batteryColor = Color.FromArgb("#BBBBBB"); // Gris
+                batteryColor = Color.FromArgb("#BBBBBB");
             }
 
-            // Créer un conteneur circulaire noir pour l'icône de batterie
             var batteryContainer = new Frame
             {
                 BackgroundColor = Colors.Black,
-                CornerRadius = 20, // Cercle
+                CornerRadius = 20,
                 HeightRequest = 40,
                 WidthRequest = 40,
                 Padding = 0,
@@ -290,7 +328,6 @@ namespace SOLARY.Views
                 Spacing = 4
             };
 
-            // Nom de la station
             var nameLabel = new Label
             {
                 Text = borne.Name,
@@ -301,7 +338,6 @@ namespace SOLARY.Views
             };
             infoStack.Add(nameLabel);
 
-            // Adresse
             var addressLabel = new Label
             {
                 Text = borne.Address,
@@ -311,11 +347,17 @@ namespace SOLARY.Views
             };
             infoStack.Add(addressLabel);
 
-            // Distance avec icône de localisation
+            // Distance et info casiers
+            var infoRow = new HorizontalStackLayout
+            {
+                Spacing = 15,
+                Margin = new Thickness(0, 6, 0, 0)
+            };
+
+            // Distance
             var distanceStack = new HorizontalStackLayout
             {
-                Spacing = 6,
-                Margin = new Thickness(0, 6, 0, 0)
+                Spacing = 6
             };
 
             var locationCircle = new Ellipse
@@ -334,8 +376,37 @@ namespace SOLARY.Views
                 TextColor = Color.FromArgb("#BBBBBB")
             };
             distanceStack.Add(distanceLabel);
+            infoRow.Add(distanceStack);
 
-            infoStack.Add(distanceStack);
+            // Info casiers si disponibles
+            if (borne.HasCasiers)
+            {
+                var casierStack = new HorizontalStackLayout
+                {
+                    Spacing = 6
+                };
+
+                var lockerImage = new Image
+                {
+                    Source = "locker.png",
+                    HeightRequest = 12,
+                    WidthRequest = 12,
+                    VerticalOptions = LayoutOptions.Center
+                };
+                casierStack.Add(lockerImage);
+
+                var casierLabel = new Label
+                {
+                    Text = borne.CasiersInfo,
+                    FontSize = 12,
+                    TextColor = Color.FromArgb("#FFD602"),
+                    FontAttributes = FontAttributes.Bold
+                };
+                casierStack.Add(casierLabel);
+                infoRow.Add(casierStack);
+            }
+
+            infoStack.Add(infoRow);
             contentGrid.Add(infoStack, 1, 0);
 
             // Statut et barre de progression (colonne de droite)
@@ -345,23 +416,22 @@ namespace SOLARY.Views
                 HorizontalOptions = LayoutOptions.End
             };
 
-            // Statut
             string statusColor;
             string statusText;
 
             if (borne.IsInMaintenance)
             {
-                statusColor = "#F44336"; // Rouge
+                statusColor = "#F44336";
                 statusText = "Maintenance";
             }
             else if (borne.IsAvailable)
             {
-                statusColor = "#FFD602"; // Jaune
+                statusColor = "#FFD602";
                 statusText = "Disponible";
             }
             else
             {
-                statusColor = "#BBBBBB"; // Gris
+                statusColor = "#BBBBBB";
                 statusText = "Occupée";
             }
 
@@ -390,10 +460,9 @@ namespace SOLARY.Views
                 Margin = new Thickness(0, 4, 0, 0)
             };
 
-            // Barre de progression plus épaisse
             var progressBarContainer = new Grid
             {
-                HeightRequest = 6, // Augmenté de 4 à 6 pour être plus épais
+                HeightRequest = 6,
                 WidthRequest = 100,
                 VerticalOptions = LayoutOptions.Center
             };
@@ -402,14 +471,14 @@ namespace SOLARY.Views
             {
                 Fill = Color.FromArgb("#333333"),
                 WidthRequest = 100,
-                HeightRequest = 6 // Augmenté de 4 à 6 pour être plus épais
+                HeightRequest = 6
             };
 
             var progressFill = new Rectangle
             {
                 Fill = Color.FromArgb(statusColor),
                 WidthRequest = 100 * borne.ChargePercentage / 100,
-                HeightRequest = 6, // Augmenté de 4 à 6 pour être plus épais
+                HeightRequest = 6,
                 HorizontalOptions = LayoutOptions.Start
             };
 
@@ -417,7 +486,6 @@ namespace SOLARY.Views
             progressBarContainer.Add(progressFill);
             progressStack.Add(progressBarContainer, 0, 0);
 
-            // Pourcentage
             var percentLabel = new Label
             {
                 Text = $"{borne.ChargePercentage}%",
@@ -431,43 +499,526 @@ namespace SOLARY.Views
             statusStack.Add(progressStack);
             contentGrid.Add(statusStack, 2, 0);
 
-            stationBorder.Content = contentGrid;
-
-            // Ajouter un effet visuel pour le survol
-            var tapGesture = new TapGestureRecognizer();
-            tapGesture.Tapped += (s, e) => {
-                SelectStation(borne.Id);
-                ZoomToStation(borne.Id);
-            };
-            stationBorder.GestureRecognizers.Add(tapGesture);
-
-            return stationBorder;
+            return contentGrid;
         }
 
-        // Modifier la méthode SelectStation pour utiliser une bordure jaune
-        private void SelectStation(int stationId)
+        private VerticalStackLayout CreateCasierContainer(BorneModel borne)
         {
-            // Désélectionner la station précédemment sélectionnée
-            if (_selectedStationId != -1 && _stationCards.ContainsKey(_selectedStationId))
+            var casierContainer = new VerticalStackLayout
             {
-                _stationCards[_selectedStationId].StrokeThickness = 0;
-                _stationCards[_selectedStationId].Stroke = null;
+                Spacing = 0,
+                IsVisible = false, // Initialement masqué
+                BackgroundColor = Color.FromArgb("#1A1F2E"),
+                Padding = new Thickness(15, 10)
+            };
+
+            // En-tête des casiers avec icône de flèche
+            var headerStack = new HorizontalStackLayout
+            {
+                Spacing = 8,
+                Margin = new Thickness(0, 0, 0, 10)
+            };
+
+            var lockerIcon = new Image
+            {
+                Source = "locker.png",
+                HeightRequest = 16,
+                WidthRequest = 16,
+                VerticalOptions = LayoutOptions.Center
+            };
+            headerStack.Add(lockerIcon);
+
+            var headerLabel = new Label
+            {
+                Text = $"Casiers disponibles ({borne.CasiersCount})",
+                FontSize = 14,
+                FontAttributes = FontAttributes.Bold,
+                TextColor = Colors.White,
+                VerticalOptions = LayoutOptions.Center
+            };
+            headerStack.Add(headerLabel);
+
+            // Icône de flèche pour indiquer l'état du menu
+            var arrowIcon = new Label
+            {
+                Text = "▼",
+                FontSize = 12,
+                TextColor = Color.FromArgb("#FFD602"),
+                HorizontalOptions = LayoutOptions.End,
+                VerticalOptions = LayoutOptions.Center
+            };
+            headerStack.Add(arrowIcon);
+
+            casierContainer.Add(headerStack);
+
+            // Liste des casiers
+            for (int i = 0; i < borne.Casiers.Count; i++)
+            {
+                var casier = borne.Casiers[i];
+                var casierCard = CreateCasierCard(casier, i + 1);
+                casierContainer.Add(casierCard);
             }
 
-            // Sélectionner la nouvelle station
+            // Si aucun casier, afficher un message
+            if (borne.Casiers.Count == 0)
+            {
+                var noLockersLabel = new Label
+                {
+                    Text = "Aucun casier disponible pour cette borne",
+                    FontSize = 12,
+                    TextColor = Color.FromArgb("#BBBBBB"),
+                    HorizontalOptions = LayoutOptions.Center,
+                    Margin = new Thickness(0, 10)
+                };
+                casierContainer.Add(noLockersLabel);
+            }
+
+            return casierContainer;
+        }
+
+        private Border CreateCasierCard(Casier casier, int casierNumber)
+        {
+            var casierBorder = new Border
+            {
+                BackgroundColor = Color.FromArgb("#2A2F3E"),
+                StrokeShape = new RoundRectangle { CornerRadius = new CornerRadius(8) },
+                Margin = new Thickness(0, 2),
+                Padding = new Thickness(12, 10)
+            };
+
+            var casierGrid = new Grid
+            {
+                ColumnDefinitions = new ColumnDefinitionCollection
+                {
+                    new ColumnDefinition { Width = GridLength.Auto },
+                    new ColumnDefinition { Width = GridLength.Star },
+                    new ColumnDefinition { Width = GridLength.Auto }
+                }
+            };
+
+            // Icône du casier
+            var lockerImage = new Image
+            {
+                Source = "locker.png",
+                HeightRequest = 20,
+                WidthRequest = 20,
+                VerticalOptions = LayoutOptions.Center,
+                HorizontalOptions = LayoutOptions.Start,
+                Margin = new Thickness(0, 0, 12, 0)
+            };
+
+            casierGrid.Add(lockerImage, 0, 0);
+
+            // Informations du casier
+            var casierInfo = new VerticalStackLayout
+            {
+                Spacing = 3,
+                VerticalOptions = LayoutOptions.Center
+            };
+
+            var casierNameLabel = new Label
+            {
+                Text = $"Casier {casierNumber}",
+                FontSize = 14,
+                FontAttributes = FontAttributes.Bold,
+                TextColor = Colors.White
+            };
+            casierInfo.Add(casierNameLabel);
+
+            var statusLabel = new Label
+            {
+                Text = casier.StatusText,
+                FontSize = 12,
+                TextColor = casier.StatusColor,
+                FontAttributes = FontAttributes.Bold
+            };
+            casierInfo.Add(statusLabel);
+
+            casierGrid.Add(casierInfo, 1, 0);
+
+            // Bouton d'action (réserver/annuler/indisponible)
+            Button actionButton = CreateCasierActionButton(casier);
+
+            casierGrid.Add(actionButton, 2, 0);
+            casierBorder.Content = casierGrid;
+            return casierBorder;
+        }
+
+        private Button CreateCasierActionButton(Casier casier)
+        {
+            // Vérifier si c'est l'utilisateur actuel qui a réservé ce casier
+            int? currentUserId = SessionService.CurrentUserId;
+            bool isMyReservation = currentUserId.HasValue && casier.UserId == currentUserId.Value && casier.IsReserved;
+
+            if (isMyReservation)
+            {
+                // Casier réservé par l'utilisateur actuel - bouton "Annuler"
+                var button = new Button
+                {
+                    Text = "Annuler",
+                    FontSize = 12,
+                    BackgroundColor = Color.FromArgb("#F44336"), // Rouge
+                    TextColor = Colors.White,
+                    CornerRadius = 15,
+                    HeightRequest = 30,
+                    WidthRequest = 80,
+                    IsEnabled = true,
+                    VerticalOptions = LayoutOptions.Center
+                };
+                button.Clicked += async (s, e) => await OnAnnulerReservationClicked(casier);
+                return button;
+            }
+            else if (casier.IsAvailable)
+            {
+                // Casier libre - vérifier si l'utilisateur a déjà une réservation active
+                bool hasActiveReservation = CheckUserHasActiveReservation();
+
+                var button = new Button
+                {
+                    Text = "Réserver",
+                    FontSize = 12,
+                    BackgroundColor = hasActiveReservation ? Color.FromArgb("#999999") : Color.FromArgb("#FFD602"),
+                    TextColor = hasActiveReservation ? Colors.White : Colors.Black,
+                    CornerRadius = 15,
+                    HeightRequest = 30,
+                    WidthRequest = 80,
+                    IsEnabled = !hasActiveReservation,
+                    VerticalOptions = LayoutOptions.Center
+                };
+
+                if (hasActiveReservation)
+                {
+                    // Ajouter un gestionnaire pour expliquer pourquoi le bouton est désactivé
+                    var tapGesture = new TapGestureRecognizer();
+                    tapGesture.Tapped += async (s, e) => {
+                        await DisplayAlert("Réservation impossible", "Vous avez déjà une réservation active. Vous ne pouvez réserver qu'un seul casier à la fois.", "OK");
+                    };
+                    button.GestureRecognizers.Add(tapGesture);
+                }
+                else
+                {
+                    button.Clicked += async (s, e) => await OnReserveCasierClicked(casier);
+                }
+
+                return button;
+            }
+            else
+            {
+                // Casier indisponible (réservé par quelqu'un d'autre ou occupé)
+                return new Button
+                {
+                    Text = "Indisponible",
+                    FontSize = 12,
+                    BackgroundColor = Color.FromArgb("#666666"),
+                    TextColor = Colors.White,
+                    CornerRadius = 15,
+                    HeightRequest = 30,
+                    WidthRequest = 80,
+                    IsEnabled = false,
+                    VerticalOptions = LayoutOptions.Center
+                };
+            }
+        }
+
+        private bool CheckUserHasActiveReservation()
+        {
+            if (!SessionService.IsLoggedIn) return false;
+
+            int currentUserId = SessionService.CurrentUserId.Value;
+
+            // Vérifier dans toutes les bornes si l'utilisateur a une réservation active
+            if (_viewModel?.Bornes != null)
+            {
+                foreach (var borne in _viewModel.Bornes)
+                {
+                    foreach (var casier in borne.Casiers)
+                    {
+                        if (casier.UserId == currentUserId && (casier.IsReserved || casier.IsOccupied))
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        // Modification de la méthode OnReserveCasierClicked pour rediriger vers CodePage si pas de code
+        private async Task OnReserveCasierClicked(Casier casier)
+        {
+            try
+            {
+                if (_currentUser == null || !SessionService.IsLoggedIn)
+                {
+                    await DisplayAlert("Erreur", "Aucun utilisateur connecté. Veuillez vous connecter.", "OK");
+                    await Shell.Current.GoToAsync("//LoginPage");
+                    return;
+                }
+
+                int userId = SessionService.CurrentUserId.Value;
+
+                // Vérifier si l'utilisateur a déjà une réservation active
+                var reservationActive = await _casierService.GetReservationActive(userId);
+                if (reservationActive != null)
+                {
+                    await DisplayAlert(
+                        "Réservation impossible",
+                        $"Vous avez déjà une réservation active pour le casier {reservationActive.CasierId}. Vous ne pouvez réserver qu'un seul casier à la fois.",
+                        "OK");
+                    return;
+                }
+
+                // Vérifier si l'utilisateur a un code de casier configuré
+                if (string.IsNullOrEmpty(_currentUser.CodeCasiers))
+                {
+                    bool goToCodePage = await DisplayAlert(
+                        "Code manquant",
+                        "Vous devez configurer un code personnel avant de pouvoir réserver un casier. Voulez-vous le faire maintenant ?",
+                        "Configurer",
+                        "Annuler");
+
+                    if (goToCodePage)
+                    {
+                        await Navigation.PushAsync(new CodePage());
+                    }
+                    return;
+                }
+
+                // Afficher une boîte de dialogue pour confirmer la réservation
+                bool confirm = await DisplayAlert(
+                    "Réservation",
+                    $"Voulez-vous réserver le casier {casier.CasierId} ?\n\nVotre code personnel sera utilisé pour déverrouiller ce casier.",
+                    "Réserver",
+                    "Annuler");
+
+                if (confirm)
+                {
+                    // Demander à l'utilisateur de confirmer son code
+                    string enteredCode = await DisplayPromptAsync(
+                        "Confirmation du code",
+                        "Veuillez entrer votre code personnel pour confirmer la réservation :",
+                        "Confirmer",
+                        "Annuler",
+                        placeholder: "Entrez votre code",
+                        maxLength: 10,
+                        keyboard: Keyboard.Numeric,
+                        initialValue: "");
+
+                    if (string.IsNullOrEmpty(enteredCode))
+                    {
+                        return;
+                    }
+
+                    if (enteredCode != _currentUser.CodeCasiers)
+                    {
+                        await DisplayAlert("Code incorrect", "Le code entré ne correspond pas à votre code personnel.", "OK");
+                        return;
+                    }
+
+                    // Le code est correct, procéder à la réservation
+                    bool success = await _casierService.ReserverCasierAsync(casier.CasierId, userId);
+
+                    if (success)
+                    {
+                        await DisplayAlert("Succès", $"Casier réservé avec succès ! Utilisez votre code personnel ({_currentUser.CodeCasiers}) pour déverrouiller le casier.", "OK");
+
+                        // Rafraîchir l'affichage
+                        await RefreshStationCasiers(casier.BorneId);
+                        await RefreshAllStations();
+                    }
+                    else
+                    {
+                        await DisplayAlert("Erreur", "Impossible de réserver ce casier.", "OK");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlert("Erreur", $"Une erreur s'est produite : {ex.Message}", "OK");
+            }
+        }
+
+        // Modification de la méthode OnAnnulerReservationClicked pour utiliser SessionService
+        private async Task OnAnnulerReservationClicked(Casier casier)
+        {
+            try
+            {
+                if (_currentUser == null || !SessionService.IsLoggedIn)
+                {
+                    await DisplayAlert("Erreur", "Aucun utilisateur connecté.", "OK");
+                    await Shell.Current.GoToAsync("//LoginPage");
+                    return;
+                }
+
+                int userId = SessionService.CurrentUserId.Value;
+
+                // Confirmer l'annulation
+                bool confirm = await DisplayAlert(
+                    "Annuler la réservation",
+                    $"Voulez-vous vraiment annuler votre réservation du casier {casier.CasierId} ?",
+                    "Annuler la réservation",
+                    "Garder la réservation");
+
+                if (confirm)
+                {
+                    bool success = await _casierService.AnnulerReservationAsync(casier.CasierId, userId);
+
+                    if (success)
+                    {
+                        await DisplayAlert("Succès", "Votre réservation a été annulée avec succès.", "OK");
+
+                        // Rafraîchir l'affichage
+                        await RefreshStationCasiers(casier.BorneId);
+                        await RefreshAllStations();
+                    }
+                    else
+                    {
+                        await DisplayAlert("Erreur", "Impossible d'annuler cette réservation.", "OK");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlert("Erreur", $"Une erreur s'est produite : {ex.Message}", "OK");
+            }
+        }
+
+        private async Task RefreshStationCasiers(int borneId)
+        {
+            try
+            {
+                // Trouver la borne dans le ViewModel
+                var borne = _viewModel?.Bornes.FirstOrDefault(b => b.BorneId == borneId);
+                if (borne != null)
+                {
+                    // Recharger les casiers
+                    var casiers = await _casierService.GetCasiersByBorneIdAsync(borneId);
+                    borne.Casiers = casiers ?? new List<Casier>();
+
+                    // Recréer la carte de la station
+                    if (_stationCards.ContainsKey(borne.Id) && _stationListLayout != null)
+                    {
+                        var oldCard = _stationCards[borne.Id];
+                        var index = _stationListLayout.Children.IndexOf(oldCard);
+
+                        if (index >= 0)
+                        {
+                            _stationListLayout.Children.RemoveAt(index);
+                            var newCard = CreateStationCard(borne);
+                            _stationListLayout.Children.Insert(index, newCard);
+                            _stationCards[borne.Id] = newCard;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Erreur lors du rafraîchissement des casiers: {ex.Message}");
+            }
+        }
+
+        // Nouvelle méthode pour rafraîchir toutes les bornes
+        private async Task RefreshAllStations()
+        {
+            if (_viewModel == null || _stationListLayout == null) return;
+
+            try
+            {
+                // Recharger les casiers pour chaque borne
+                foreach (var borne in _viewModel.Bornes)
+                {
+                    var casiers = await _casierService.GetCasiersByBorneIdAsync(borne.BorneId);
+                    borne.Casiers = casiers ?? new List<Casier>();
+                }
+
+                // Recréer toutes les cartes de stations
+                _stationListLayout.Clear();
+                _stationCards.Clear();
+                _casierContainers.Clear();
+
+                var sortedBornes = _viewModel.Bornes.OrderByDescending(b => b.IsAvailable).ToList();
+
+                foreach (var borne in sortedBornes)
+                {
+                    var stationCard = CreateStationCard(borne);
+                    _stationListLayout.Add(stationCard);
+                    _stationCards[borne.Id] = stationCard;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Erreur lors du rafraîchissement des stations: {ex.Message}");
+            }
+        }
+
+        private void ToggleStationSelection(int stationId)
+        {
+            // Si c'est la même station, basculer l'affichage des casiers
+            if (_selectedStationId == stationId)
+            {
+                ToggleCasierVisibility(stationId);
+            }
+            else
+            {
+                // Désélectionner l'ancienne station
+                if (_selectedStationId != -1)
+                {
+                    DeselectStation(_selectedStationId);
+                }
+
+                // Sélectionner la nouvelle station
+                SelectStation(stationId);
+                ZoomToStation(stationId);
+            }
+        }
+
+        private void ToggleCasierVisibility(int stationId)
+        {
+            var borne = _viewModel?.Bornes.FirstOrDefault(b => b.Id == stationId);
+            if (borne != null && _casierContainers.ContainsKey(borne.BorneId))
+            {
+                var container = _casierContainers[borne.BorneId];
+                container.IsVisible = !container.IsVisible;
+            }
+        }
+
+        private void SelectStation(int stationId)
+        {
             _selectedStationId = stationId;
             if (_stationCards.ContainsKey(stationId))
             {
                 _stationCards[stationId].StrokeThickness = 2;
                 _stationCards[stationId].Stroke = Color.FromArgb("#FFD602");
 
-                // Faire défiler vers le haut pour voir la carte
                 _mainScrollView?.ScrollToAsync(0, 0, true);
 
-                // Restaurer la hauteur de la carte
                 if (_mapContainer != null)
                 {
                     _mapContainer.HeightRequest = 450;
+                }
+
+                // Afficher les casiers si disponibles
+                var borne = _viewModel?.Bornes.FirstOrDefault(b => b.Id == stationId);
+                if (borne != null && _casierContainers.ContainsKey(borne.BorneId))
+                {
+                    _casierContainers[borne.BorneId].IsVisible = true;
+                }
+            }
+        }
+
+        private void DeselectStation(int stationId)
+        {
+            if (_stationCards.ContainsKey(stationId))
+            {
+                _stationCards[stationId].StrokeThickness = 0;
+                _stationCards[stationId].Stroke = null;
+
+                // Masquer les casiers
+                var borne = _viewModel?.Bornes.FirstOrDefault(b => b.Id == stationId);
+                if (borne != null && _casierContainers.ContainsKey(borne.BorneId))
+                {
+                    _casierContainers[borne.BorneId].IsVisible = false;
                 }
             }
         }
@@ -476,7 +1027,6 @@ namespace SOLARY.Views
         {
             if (_viewModel == null || string.IsNullOrWhiteSpace(e.NewTextValue))
             {
-                // Si la recherche est vide, afficher toutes les bornes
                 if (_viewModel != null)
                 {
                     var sortedBornes = _viewModel.Bornes.OrderByDescending(b => b.IsAvailable).ToList();
@@ -485,29 +1035,24 @@ namespace SOLARY.Views
                 return;
             }
 
-            // Filtrer les bornes en fonction du texte de recherche
             var searchText = e.NewTextValue.ToLowerInvariant();
             var filteredBornes = _viewModel.Bornes.Where(b =>
                 b.Name.ToLowerInvariant().Contains(searchText) ||
                 b.Address.ToLowerInvariant().Contains(searchText)).ToList();
 
-            // Mettre à jour la liste des bornes
             UpdateStationList(filteredBornes);
         }
 
         private void UpdateStationList(List<BorneModel> bornes)
         {
-            // Vérifier que le layout existe
             if (_stationListLayout == null) return;
 
-            // Vider la liste actuelle
             _stationListLayout.Clear();
             _stationCards.Clear();
+            _casierContainers.Clear();
 
-            // Trier les bornes par disponibilité (disponibles d'abord)
             var sortedBornes = bornes.OrderByDescending(b => b.IsAvailable).ToList();
 
-            // Ajouter les bornes à la liste
             foreach (var borne in sortedBornes)
             {
                 var stationCard = CreateStationCard(borne);
@@ -515,7 +1060,6 @@ namespace SOLARY.Views
                 _stationCards[borne.Id] = stationCard;
             }
 
-            // Réinitialiser la sélection
             _selectedStationId = -1;
         }
 
@@ -523,10 +1067,8 @@ namespace SOLARY.Views
         {
             try
             {
-                // Charger le fichier HTML depuis les ressources
                 string htmlContent = LoadHtmlFromResource("map.html");
 
-                // Si le contenu est vide, afficher une alerte
                 if (string.IsNullOrWhiteSpace(htmlContent))
                 {
                     Debug.WriteLine("ERREUR: Contenu HTML non trouvé dans les ressources");
@@ -534,7 +1076,6 @@ namespace SOLARY.Views
                     return;
                 }
 
-                // Configurer la WebView pour permettre JavaScript
 #if ANDROID
                 var handler = MapWebView?.Handler as Microsoft.Maui.Handlers.WebViewHandler;
                 if (handler != null)
@@ -553,53 +1094,43 @@ namespace SOLARY.Views
                         webView.Settings.DisplayZoomControls = false;
                         webView.Settings.LoadWithOverviewMode = true;
                         webView.Settings.UseWideViewPort = true;
-
-                        // Effacer le cache
                         webView.ClearCache(true);
-
-                        // Ajouter une interface JavaScript pour la communication
                         webView.AddJavascriptInterface(new WebViewJavaScriptInterface(this), "jsBridge");
                     }
                 }
 #endif
 
 #if IOS || MACCATALYST
-        // Configuration spécifique pour iOS
-        var handler = MapWebView?.Handler as Microsoft.Maui.Handlers.WebViewHandler;
-        if (handler != null)
-        {
-            var webView = handler.PlatformView as WebKit.WKWebView;
-            if (webView != null)
-            {
-                // Effacer le cache - méthode compatible avec toutes les versions
-                var dataTypes = WebKit.WKWebsiteDataStore.AllWebsiteDataTypes;
+                var handler = MapWebView?.Handler as Microsoft.Maui.Handlers.WebViewHandler;
+                if (handler != null)
+                {
+                    var webView = handler.PlatformView as WebKit.WKWebView;
+                    if (webView != null)
+                    {
+                        var dataTypes = WebKit.WKWebsiteDataStore.AllWebsiteDataTypes;
+                        WebKit.WKWebsiteDataStore.DefaultDataStore.RemoveDataOfTypes(
+                            dataTypes,
+                            Foundation.NSDate.DistantPast,
+                            () => Debug.WriteLine("Cache cleared")
+                        );
 
-                // Utiliser une méthode qui ne dépend pas de NSDate
-                WebKit.WKWebsiteDataStore.DefaultDataStore.RemoveDataOfTypes(
-                    dataTypes,
-                    Foundation.NSDate.DistantPast,
-                    () => Debug.WriteLine("Cache cleared")
-                );
+                        var scriptContent = @"window.webkit.messageHandlers.jsBridge = { 
+                            postMessage: function(message) { 
+                                window.location.href = 'bridge://' + encodeURIComponent(JSON.stringify(message)); 
+                            } 
+                        };";
 
-                // Ajouter un script d'injection pour la communication
-                var scriptContent = @"window.webkit.messageHandlers.jsBridge = { 
-            postMessage: function(message) { 
-                window.location.href = 'bridge://' + encodeURIComponent(JSON.stringify(message)); 
-            } 
-        };";
+                        var script = new WebKit.WKUserScript(
+                            new Foundation.NSString(scriptContent),
+                            WebKit.WKUserScriptInjectionTime.AtDocumentStart,
+                            false
+                        );
 
-                var script = new WebKit.WKUserScript(
-                    new Foundation.NSString(scriptContent),
-                    WebKit.WKUserScriptInjectionTime.AtDocumentStart,
-                    false
-                );
-
-                webView.Configuration.UserContentController.AddUserScript(script);
-            }
-        }
+                        webView.Configuration.UserContentController.AddUserScript(script);
+                    }
+                }
 #endif
 
-                // Générer les données des bornes en JSON
                 string bornesJson = "[]";
                 if (_viewModel != null)
                 {
@@ -607,10 +1138,8 @@ namespace SOLARY.Views
                     Debug.WriteLine($"[DEBUG] Données des bornes générées: {bornesJson}");
                 }
 
-                // Remplacer les données statiques par les données dynamiques
                 htmlContent = htmlContent.Replace("var stationData = [];", $"var stationData = {bornesJson};");
 
-                // Ajouter un timestamp pour éviter la mise en cache
                 string timestamp = DateTime.Now.Ticks.ToString();
                 htmlContent = htmlContent.Replace("</head>",
                     $"<meta http-equiv=\"Cache-Control\" content=\"no-cache, no-store, must-revalidate\" />" +
@@ -620,18 +1149,11 @@ namespace SOLARY.Views
 
                 Debug.WriteLine($"Chargement de la carte avec timestamp: {timestamp}");
 
-                // Charger le HTML dans la WebView
                 if (MapWebView != null)
                 {
                     MapWebView.Source = new HtmlWebViewSource { Html = htmlContent };
-
-                    // Ajouter un gestionnaire d'événements pour la navigation
                     MapWebView.Navigated += OnWebViewNavigated;
-
-                    // Ajouter un gestionnaire pour les erreurs JavaScript
                     MapWebView.Navigating += OnWebViewNavigating;
-
-                    // S'assurer que la WebView est visible
                     MapWebView.IsVisible = true;
                 }
             }
@@ -642,53 +1164,13 @@ namespace SOLARY.Views
             }
         }
 
-        // Nouvelle méthode pour générer le JSON des bornes
         private string GenerateBornesJson()
         {
             if (_viewModel == null || _viewModel.Bornes == null || _viewModel.Bornes.Count == 0)
                 return "[]";
 
-            var bornesArray = new System.Text.StringBuilder();
-            bornesArray.Append("[");
-
-            for (int i = 0; i < _viewModel.Bornes.Count; i++)
-            {
-                var borne = _viewModel.Bornes[i];
-
-                // Déterminer le statut pour la carte
-                string status = "Disponible";
-                if (borne.IsInMaintenance) status = "Maintenance";
-                else if (!borne.IsAvailable) status = "Occupée";
-
-                // Formater l'adresse complète
-                string address = borne.FullAddress;
-
-                // Créer l'objet JSON pour cette borne avec les coordonnées exactes
-                bornesArray.Append("{");
-                bornesArray.Append($"\"id\": {borne.Id},");
-                bornesArray.Append($"\"name\": \"{EscapeJsonString(borne.Name)}\",");
-                bornesArray.Append($"\"address\": \"{EscapeJsonString(address)}\",");
-                // Utiliser les coordonnées exactes de la base de données
-                bornesArray.Append($"\"lat\": {borne.Latitude.ToString(System.Globalization.CultureInfo.InvariantCulture)},");
-                bornesArray.Append($"\"lng\": {borne.Longitude.ToString(System.Globalization.CultureInfo.InvariantCulture)},");
-                bornesArray.Append($"\"power\": \"{borne.PowerOutput.ToString(System.Globalization.CultureInfo.InvariantCulture)}\",");
-                bornesArray.Append($"\"status\": \"{status}\",");
-                bornesArray.Append($"\"percentage\": {borne.ChargePercentage}");
-
-                bornesArray.Append("}");
-
-                // Ajouter une virgule si ce n'est pas le dernier élément
-                if (i < _viewModel.Bornes.Count - 1)
-                {
-                    bornesArray.Append(",");
-                }
-            }
-
-            bornesArray.Append("]");
-
-            // Déboguer les coordonnées pour vérification
-            Debug.WriteLine($"[DEBUG] JSON des bornes: {bornesArray.ToString()}");
-            return bornesArray.ToString();
+            // Utiliser la méthode GetBornesJson du ViewModel qui est déjà optimisée
+            return _viewModel.GetBornesJson();
         }
 
         private string EscapeJsonString(string str)
@@ -703,27 +1185,23 @@ namespace SOLARY.Views
                      .Replace("\t", "\\t");
         }
 
-        // Remplacer la méthode OnWebViewNavigated existante par celle-ci
         private void OnWebViewNavigated(object? sender, WebNavigatedEventArgs e)
         {
             Debug.WriteLine($"WebView navigated: {e.Result}");
             _mapInitialized = true;
 
-            // Forcer un rafraîchissement de la carte après le chargement
             MapWebView?.EvaluateJavaScriptAsync(@"
-        setTimeout(function() {
-            console.log('Initialisation de la carte...');
-            if (typeof initMap === 'function') {
-                initMap();
-                console.log('Fonction initMap appelée');
-                
-                // Vérifier les données des bornes
-                console.log('Données des bornes:', JSON.stringify(stationData));
-            } else {
-                console.error('La fonction initMap n\'est pas disponible');
-            }
-        }, 500);
-    ");
+                setTimeout(function() {
+                    console.log('Initialisation de la carte...');
+                    if (typeof initMap === 'function') {
+                        initMap();
+                        console.log('Fonction initMap appelée');
+                        console.log('Données des bornes:', JSON.stringify(stationData));
+                    } else {
+                        console.error('La fonction initMap n\'est pas disponible');
+                    }
+                }, 500);
+            ");
         }
 
         private void OnWebViewNavigating(object? sender, WebNavigatingEventArgs e)
@@ -732,7 +1210,6 @@ namespace SOLARY.Views
 
             Debug.WriteLine($"WebView navigating to: {e.Url}");
 
-            // Intercepter les messages du pont JavaScript
             if (e.Url.StartsWith("bridge://"))
             {
                 e.Cancel = true;
@@ -741,12 +1218,10 @@ namespace SOLARY.Views
             }
         }
 
-        // Remplacer la méthode ProcessBridgeMessage existante par celle-ci
         private void ProcessBridgeMessage(string messageJson)
         {
             try
             {
-                // Analyser le message JSON
                 var message = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(messageJson);
                 if (message != null && message.ContainsKey("action"))
                 {
@@ -759,24 +1234,6 @@ namespace SOLARY.Views
                             Debug.WriteLine("Carte prête");
                             break;
                         case "error":
-                            if (message.ContainsKey("data") && message["data"] != null)
-                            {
-                                var dataObj = message["data"];
-                                if (dataObj != null)
-                                {
-                                    string? dataStr = dataObj.ToString();
-                                    if (dataStr != null)
-                                    {
-                                        var data = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(dataStr ?? "{}");
-                                        if (data != null && data.ContainsKey("message") && data.ContainsKey("source") && data.ContainsKey("line"))
-                                        {
-                                            Debug.WriteLine($"Erreur JavaScript: {data["message"]} à {data["source"]}:{data["line"]}");
-                                        }
-                                    }
-                                }
-                            }
-                            break;
-                        case "stationSelected":
                             if (message.ContainsKey("data") && message["data"] != null)
                             {
                                 var dataObj = message["data"];
@@ -813,7 +1270,6 @@ namespace SOLARY.Views
                                             double lat = Convert.ToDouble(data["lat"]);
                                             double lng = Convert.ToDouble(data["lng"]);
 
-                                            // Appeler la méthode de navigation sur le thread UI
                                             MainThread.BeginInvokeOnMainThread(() => {
                                                 NavigateToStation(stationId, address, lat, lng);
                                             });
@@ -835,7 +1291,6 @@ namespace SOLARY.Views
         {
             try
             {
-                // Trouver la borne correspondante
                 var borne = _viewModel?.Bornes.FirstOrDefault(b => b.Id == stationId);
                 if (borne == null)
                 {
@@ -843,38 +1298,31 @@ namespace SOLARY.Views
                     return;
                 }
 
-                // Utiliser l'adresse complète formatée
                 string formattedAddress = $"{borne.Address}, {borne.PostalCode} {borne.City}";
                 Debug.WriteLine($"[DEBUG] Navigation vers: {formattedAddress} ({latitude}, {longitude})");
 
-                // Demander à l'utilisateur quelle application utiliser
                 bool useGoogleMaps = await DisplayAlert(
                     "Navigation",
                     $"Naviguer vers {borne.Name}?",
                     "Google Maps",
                     "Maps par défaut");
 
-                // Construire l'URI de navigation
                 string navigationUri;
 
                 if (useGoogleMaps)
                 {
-                    // URI pour Google Maps avec l'adresse formatée
                     navigationUri = $"https://www.google.com/maps/dir/?api=1&destination={Uri.EscapeDataString(formattedAddress)}&travelmode=driving";
                 }
                 else
                 {
-                    // URI pour l'application Maps par défaut
                     navigationUri = $"geo:0,0?q={Uri.EscapeDataString(formattedAddress)}";
 
-                    // Pour iOS, utiliser un format différent
                     if (DeviceInfo.Platform == DevicePlatform.iOS)
                     {
                         navigationUri = $"maps://?daddr={Uri.EscapeDataString(formattedAddress)}&dirflg=d";
                     }
                 }
 
-                // Ouvrir l'application de navigation
                 try
                 {
                     await Launcher.OpenAsync(navigationUri);
@@ -883,7 +1331,6 @@ namespace SOLARY.Views
                 {
                     Debug.WriteLine($"Erreur lors de l'ouverture de l'application de navigation: {ex.Message}");
 
-                    // Si l'ouverture avec l'adresse échoue, essayer avec les coordonnées
                     try
                     {
                         string fallbackUri;
@@ -915,12 +1362,10 @@ namespace SOLARY.Views
             }
         }
 
-
         private string LoadHtmlFromResource(string fileName)
         {
             try
             {
-                // Afficher toutes les ressources intégrées pour le débogage
                 var assembly = IntrospectionExtensions.GetTypeInfo(typeof(MapPage)).Assembly;
                 var resources = assembly.GetManifestResourceNames();
 
@@ -930,9 +1375,6 @@ namespace SOLARY.Views
                     Debug.WriteLine($"- {res}");
                 }
 
-                // Essayer plusieurs approches pour trouver le fichier
-
-                // Approche 1: Nom complet avec namespace
                 string resourceName = $"SOLARY.Resources.Raw.{fileName}";
                 Debug.WriteLine($"Essai 1: Recherche de la ressource: {resourceName}");
 
@@ -953,7 +1395,6 @@ namespace SOLARY.Views
                     }
                 }
 
-                // Approche 2: Recherche par correspondance partielle
                 Debug.WriteLine("Essai 2: Recherche par correspondance partielle");
                 var matchingResource = resources.FirstOrDefault(r => r.EndsWith(fileName, StringComparison.OrdinalIgnoreCase));
                 if (!string.IsNullOrEmpty(matchingResource))
@@ -973,7 +1414,6 @@ namespace SOLARY.Views
                     }
                 }
 
-                // Approche 3: Recherche de n'importe quel fichier HTML
                 Debug.WriteLine("Essai 3: Recherche de n'importe quel fichier HTML");
                 matchingResource = resources.FirstOrDefault(r => r.EndsWith(".html", StringComparison.OrdinalIgnoreCase));
                 if (!string.IsNullOrEmpty(matchingResource))
@@ -993,7 +1433,6 @@ namespace SOLARY.Views
                     }
                 }
 
-                // Si tout échoue, retourner une chaîne vide
                 Debug.WriteLine("!!! IMPOSSIBLE DE TROUVER LE FICHIER HTML !!!");
                 return string.Empty;
             }
@@ -1006,7 +1445,6 @@ namespace SOLARY.Views
 
         private void SetupNavigation()
         {
-            // Gestionnaire pour l'onglet Accueil
             var accueilTab = this.FindByName<VerticalStackLayout>("AccueilTab");
             if (accueilTab != null)
             {
@@ -1017,7 +1455,6 @@ namespace SOLARY.Views
                 accueilTab.GestureRecognizers.Add(tapGesture);
             }
 
-            // Gestionnaire pour l'onglet Statistiques
             var statsTab = this.FindByName<VerticalStackLayout>("StatistiquesTab");
             if (statsTab != null)
             {
@@ -1028,18 +1465,17 @@ namespace SOLARY.Views
                 statsTab.GestureRecognizers.Add(tapGesture);
             }
 
-            // Gestionnaire pour l'onglet Scan
-            var scanTab = this.FindByName<VerticalStackLayout>("ScanTab");
-            if (scanTab != null)
+            // Gestionnaire pour l'onglet Code (remplace Scan)
+            var codeTab = this.FindByName<VerticalStackLayout>("CodeTab");
+            if (codeTab != null)
             {
                 var tapGesture = new TapGestureRecognizer();
                 tapGesture.Tapped += async (s, e) => {
-                    await DisplayAlert("Scan", "La page Scan n'est pas encore implémentée.", "OK");
+                    await Navigation.PushAsync(new CodePage());
                 };
-                scanTab.GestureRecognizers.Add(tapGesture);
+                codeTab.GestureRecognizers.Add(tapGesture);
             }
 
-            // Gestionnaire pour l'onglet Paramètres
             var settingsTab = this.FindByName<VerticalStackLayout>("ParametresTab");
             if (settingsTab != null)
             {
@@ -1066,7 +1502,6 @@ namespace SOLARY.Views
                     return;
                 }
 
-                // Appeler la fonction JavaScript pour centrer sur la position de l'utilisateur
                 MapWebView?.EvaluateJavaScriptAsync("centerOnUserLocation()");
             }
             catch (Exception ex)
@@ -1106,8 +1541,6 @@ namespace SOLARY.Views
             try
             {
                 if (!_mapInitialized) return;
-
-                // Appeler la fonction JavaScript pour basculer en vue 3D
                 MapWebView?.EvaluateJavaScriptAsync("toggle3DView()");
             }
             catch (Exception ex)
@@ -1129,7 +1562,6 @@ namespace SOLARY.Views
             }
         }
 
-        // Modifier la méthode ZoomToStation pour ajuster le niveau de zoom
         private void ZoomToStation(int stationId)
         {
             try
@@ -1142,16 +1574,11 @@ namespace SOLARY.Views
 
                 Debug.WriteLine($"Zoom to station: {stationId}");
 
-                // Sélectionner la station dans l'interface
                 SelectStation(stationId);
-
-                // Appeler la fonction JavaScript pour zoomer sur la station
                 MapWebView?.EvaluateJavaScriptAsync($"zoomToStation({stationId})");
 
-                // Faire défiler vers le haut pour voir la carte complètement
                 _mainScrollView?.ScrollToAsync(0, 0, true);
 
-                // S'assurer que la carte est suffisamment grande pour afficher la popup
                 if (_mapContainer != null)
                 {
                     _mapContainer.HeightRequest = 450;
@@ -1167,12 +1594,19 @@ namespace SOLARY.Views
         {
             base.OnDisappearing();
 
-            // Nettoyer les ressources de la WebView
+            // Arrêter les mises à jour en temps réel
+            if (_casierUpdateTimer != null)
+            {
+                _casierUpdateTimer.Stop();
+                _casierUpdateTimer.Dispose();
+                _casierUpdateTimer = null;
+                Debug.WriteLine("Mise à jour en temps réel des casiers arrêtée");
+            }
+
             try
             {
                 MapWebView?.EvaluateJavaScriptAsync("map = null;");
 
-                // Forcer le nettoyage du cache
 #if ANDROID
                 var handler = MapWebView?.Handler as Microsoft.Maui.Handlers.WebViewHandler;
                 if (handler != null)
@@ -1190,9 +1624,114 @@ namespace SOLARY.Views
                 Debug.WriteLine($"Erreur lors du nettoyage de la WebView: {ex.Message}");
             }
         }
+
+        private void StartRealTimeUpdates()
+        {
+            // Créer un timer qui se déclenche toutes les 5 secondes
+            _casierUpdateTimer = new System.Timers.Timer(5000);
+            _casierUpdateTimer.Elapsed += async (sender, e) => await UpdateCasiersInRealTime();
+            _casierUpdateTimer.AutoReset = true;
+            _casierUpdateTimer.Enabled = true;
+
+            Debug.WriteLine("Mise à jour en temps réel des casiers démarrée");
+        }
+
+        private async Task UpdateCasiersInRealTime()
+        {
+            if (_isUpdatingCasiers || _viewModel == null) return;
+
+            _isUpdatingCasiers = true;
+
+            try
+            {
+                bool hasChanges = false;
+
+                foreach (var borne in _viewModel.Bornes)
+                {
+                    if (borne.HasCasiers)
+                    {
+                        // Récupérer les nouveaux statuts des casiers
+                        var updatedCasiers = await _casierService.GetCasiersByBorneIdAsync(borne.BorneId);
+
+                        if (updatedCasiers != null)
+                        {
+                            // Vérifier s'il y a des changements
+                            for (int i = 0; i < borne.Casiers.Count && i < updatedCasiers.Count; i++)
+                            {
+                                if (borne.Casiers[i].Status != updatedCasiers[i].Status)
+                                {
+                                    hasChanges = true;
+                                    break;
+                                }
+                            }
+
+                            if (hasChanges)
+                            {
+                                borne.Casiers = updatedCasiers;
+
+                                // Mettre à jour l'interface utilisateur sur le thread principal
+                                MainThread.BeginInvokeOnMainThread(() => {
+                                    UpdateStationCasierDisplay(borne);
+                                });
+                            }
+                        }
+                    }
+                }
+
+                if (hasChanges)
+                {
+                    Debug.WriteLine("Statuts des casiers mis à jour en temps réel");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Erreur lors de la mise à jour en temps réel: {ex.Message}");
+            }
+            finally
+            {
+                _isUpdatingCasiers = false;
+            }
+        }
+
+        private void UpdateStationCasierDisplay(BorneModel borne)
+        {
+            try
+            {
+                if (_stationCards.ContainsKey(borne.Id) && _stationListLayout != null)
+                {
+                    var oldCard = _stationCards[borne.Id];
+                    var index = _stationListLayout.Children.IndexOf(oldCard);
+
+                    if (index >= 0)
+                    {
+                        // Sauvegarder l'état de visibilité des casiers
+                        bool wasCasierVisible = false;
+                        if (_casierContainers.ContainsKey(borne.BorneId))
+                        {
+                            wasCasierVisible = _casierContainers[borne.BorneId].IsVisible;
+                        }
+
+                        // Recréer la carte
+                        _stationListLayout.Children.RemoveAt(index);
+                        var newCard = CreateStationCard(borne);
+                        _stationListLayout.Children.Insert(index, newCard);
+                        _stationCards[borne.Id] = newCard;
+
+                        // Restaurer l'état de visibilité des casiers
+                        if (wasCasierVisible && _casierContainers.ContainsKey(borne.BorneId))
+                        {
+                            _casierContainers[borne.BorneId].IsVisible = true;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Erreur lors de la mise à jour de l'affichage: {ex.Message}");
+            }
+        }
     }
 
-    // Interface JavaScript pour Android
 #if ANDROID
     public class WebViewJavaScriptInterface : Java.Lang.Object
     {
@@ -1210,14 +1749,12 @@ namespace SOLARY.Views
             {
                 Debug.WriteLine($"Message reçu du JavaScript: {message}");
 
-                // Traiter le message ici
                 var data = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(message);
                 if (data != null && data.ContainsKey("action"))
                 {
                     string? action = data["action"]?.ToString();
                     if (action == null) return;
 
-                    // Traiter l'action
                     switch (action)
                     {
                         case "mapReady":

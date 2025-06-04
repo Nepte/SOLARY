@@ -1,4 +1,5 @@
 ﻿using System.Text.Json.Serialization;
+using Microsoft.Maui.Graphics;
 
 namespace SOLARY.Model
 {
@@ -45,5 +46,33 @@ namespace SOLARY.Model
 
         [JsonPropertyName("distance")]
         public double? Distance { get; set; }
+
+        // Nouvelle propriété pour les casiers (non sérialisée car chargée séparément)
+        [JsonIgnore]
+        public List<Casier> Casiers { get; set; } = new List<Casier>();
+
+        // Propriétés calculées existantes
+        [JsonIgnore]
+        public bool IsAvailable => Status.ToLower() == "disponible" && !IsInMaintenance;
+
+        [JsonIgnore]
+        public string FullAddress => $"{Address}, {PostalCode} {City}";
+
+        // Nouvelles propriétés calculées pour les casiers
+        [JsonIgnore]
+        public bool HasCasiers => Casiers.Any();
+
+        [JsonIgnore]
+        public int CasiersCount => Casiers.Count;
+
+        [JsonIgnore]
+        public int CasiersLibres => Casiers.Count(c => c.IsAvailable);
+
+        [JsonIgnore]
+        public string CasiersInfo => HasCasiers ? $"{CasiersLibres}/{CasiersCount} libres" : "Aucun casier";
+
+        // Propriété pour compatibilité avec l'ancien code (utilise BorneId)
+        [JsonIgnore]
+        public int Id => BorneId;
     }
 }

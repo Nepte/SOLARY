@@ -45,5 +45,21 @@
 		<key>NSAllowsArbitraryLoadsInWebContent</key>
 		<true/>
 	</dict>
+	
+	<!-- Configuration pour le plein écran et masquer la barre de statut -->
+	<key>UIStatusBarHidden</key>
+	<true/>
+	<key>UIViewControllerBasedStatusBarAppearance</key>
+	<false/>
+	<key>UIStatusBarStyle</key>
+	<string>UIStatusBarStyleLightContent</string>
+	
+	<!-- Configuration pour masquer la barre d'accueil sur iPhone X et plus récents -->
+	<key>UIRequiresFullScreen</key>
+	<true/>
+	
+	<!-- Empêcher l'affichage automatique de la barre de statut -->
+	<key>UIPrefersStatusBarHidden</key>
+	<true/>
 </dict>
 </plist>

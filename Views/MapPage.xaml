@@ -63,7 +63,7 @@
         </ResourceDictionary>
     </ContentPage.Resources>
 
-    <!-- Modifier la structure principale pour permettre un scroll global -->
+    <!-- Structure principale -->
     <Grid RowDefinitions="*,Auto">
         <!-- ScrollView global qui contient tout le contenu -->
         <ScrollView Grid.Row="0" x:Name="MainScrollView" Scrolled="OnMainScrolled">
@@ -264,13 +264,13 @@
                          Style="{StaticResource NavTextActiveStyle}"/>
                 </VerticalStackLayout>
 
-                <!-- Onglet Scan -->
+                <!-- Onglet Code (remplace Scan) -->
                 <VerticalStackLayout Grid.Row="1" Grid.Column="3" 
                                    Style="{StaticResource NavItemStyle}"
-                                   x:Name="ScanTab">
-                    <Image Source="icon_scan.png" 
+                                   x:Name="CodeTab">
+                    <Image Source="icon_code.png" 
                          Style="{StaticResource NavIconStyle}"/>
-                    <Label Text="Scan" 
+                    <Label Text="Code" 
                          Style="{StaticResource NavTextStyle}"/>
                 </VerticalStackLayout>
 

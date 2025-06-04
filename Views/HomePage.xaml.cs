@@ -37,14 +37,17 @@ namespace SOLARY.Views
             }
 
             // Ajouter des gestionnaires d'événements pour le mouvement de la souris
-            GraphView.StartInteraction += OnGraphStartInteraction;
-            GraphView.DragInteraction += OnGraphDragInteraction;
-            GraphView.EndInteraction += OnGraphEndInteraction;
+            if (GraphView != null)
+            {
+                GraphView.StartInteraction += OnGraphStartInteraction;
+                GraphView.DragInteraction += OnGraphDragInteraction;
+                GraphView.EndInteraction += OnGraphEndInteraction;
+            }
 
             // Ajouter un gestionnaire pour le mouvement du pointeur
 #if WINDOWS
-            Microsoft.Maui.Controls.Application.Current.Dispatcher.Dispatch(() => {
-                var nativeView = GraphView.Handler?.PlatformView as Microsoft.UI.Xaml.FrameworkElement;
+            Microsoft.Maui.Controls.Application.Current?.Dispatcher.Dispatch(() => {
+                var nativeView = GraphView?.Handler?.PlatformView as Microsoft.UI.Xaml.FrameworkElement;
                 if (nativeView != null)
                 {
                     nativeView.PointerMoved += (s, e) => {
@@ -94,15 +97,15 @@ namespace SOLARY.Views
                 statsTab.GestureRecognizers.Add(tapGesture);
             }
 
-            // Gestionnaire pour l'onglet Scan
-            var scanTab = this.FindByName<VerticalStackLayout>("ScanTab");
-            if (scanTab != null)
+            // Gestionnaire pour l'onglet Code (remplace Scan)
+            var codeTab = this.FindByName<VerticalStackLayout>("CodeTab");
+            if (codeTab != null)
             {
                 var tapGesture = new TapGestureRecognizer();
                 tapGesture.Tapped += async (s, e) => {
-                    await DisplayAlert("Scan", "La page Scan n'est pas encore implémentée.", "OK");
+                    await Navigation.PushAsync(new CodePage());
                 };
-                scanTab.GestureRecognizers.Add(tapGesture);
+                codeTab.GestureRecognizers.Add(tapGesture);
             }
 
             // Gestionnaire pour l'onglet Paramètres
@@ -133,7 +136,10 @@ namespace SOLARY.Views
 
         private void PositionTooltipAndLine(int dataPointIndex)
         {
-            var graphWidth = GraphView.Width;
+            var graphView = this.FindByName<GraphicsView>("GraphView");
+            if (graphView == null) return;
+
+            var graphWidth = graphView.Width;
             if (graphWidth <= 0) return;
 
             // Calculer la position X en fonction de l'index
@@ -144,11 +150,15 @@ namespace SOLARY.Views
             if (BindingContext is HomeViewModel viewModel && viewModel.GraphDrawable is EnhancedGraphDrawable graphDrawable)
             {
                 graphDrawable.CurrentTooltipIndex = dataPointIndex;
-                GraphView.Invalidate(); // Redessiner le graphique
+                graphView.Invalidate(); // Redessiner le graphique
             }
 
             // Positionner le tooltip
-            TooltipFrame.TranslationX = tooltipXPosition - (TooltipFrame.Width / 2);
+            var tooltipFrame = this.FindByName<Border>("TooltipFrame");
+            if (tooltipFrame != null)
+            {
+                tooltipFrame.TranslationX = tooltipXPosition - (tooltipFrame.Width / 2);
+            }
 
             // Mettre à jour le contenu du tooltip
             UpdateTooltip(dataPointIndex);
@@ -166,17 +176,26 @@ namespace SOLARY.Views
             // Calculer une valeur plus réaliste basée sur la position dans le graphique
             int value = (int)(EnhancedGraphDrawable.DataPoints[dataPointIndex] * 200); // Valeur max 200KWh
 
-            TooltipDate.Text = "Feb, 22";
-            TooltipValue.Text = $"{value}kwh";
+            var tooltipDate = this.FindByName<Label>("TooltipDate");
+            var tooltipValue = this.FindByName<Label>("TooltipValue");
+
+            if (tooltipDate != null)
+                tooltipDate.Text = "Feb, 22";
+
+            if (tooltipValue != null)
+                tooltipValue.Text = $"{value}kwh";
         }
 
-        private void OnGraphPanUpdated(object sender, PanUpdatedEventArgs e)
+        private void OnGraphPanUpdated(object? sender, PanUpdatedEventArgs e)
         {
             switch (e.StatusType)
             {
                 case GestureStatus.Running:
                     // Calculer le nouvel index en fonction du déplacement
-                    var graphWidth = GraphView.Width;
+                    var graphView = this.FindByName<GraphicsView>("GraphView");
+                    if (graphView == null) return;
+
+                    var graphWidth = graphView.Width;
                     if (graphWidth <= 0) return;
 
                     float pointSpacing = (float)(graphWidth / (EnhancedGraphDrawable.DataPoints.Length - 1));
@@ -198,13 +217,16 @@ namespace SOLARY.Views
             }
         }
 
-        private void OnGraphTapped(object sender, TappedEventArgs e)
+        private void OnGraphTapped(object? sender, TappedEventArgs e)
         {
             // Calculer l'index en fonction de la position du tap
-            var graphWidth = GraphView.Width;
+            var graphView = this.FindByName<GraphicsView>("GraphView");
+            if (graphView == null) return;
+
+            var graphWidth = graphView.Width;
             if (graphWidth <= 0) return;
 
-            var tapPosition = e.GetPosition(GraphView);
+            var tapPosition = e.GetPosition(graphView);
             if (!tapPosition.HasValue) return;
 
             float pointSpacing = (float)(graphWidth / (EnhancedGraphDrawable.DataPoints.Length - 1));
@@ -216,25 +238,34 @@ namespace SOLARY.Views
         }
 
         // Méthodes pour gérer le mouvement de la souris sur le graphique
-        private void OnGraphStartInteraction(object sender, TouchEventArgs e)
+        private void OnGraphStartInteraction(object? sender, TouchEventArgs e)
         {
-            isPointerTracking = true;
-            UpdateTooltipPosition(e.Touches[0].X);
+            if (e.Touches?.Length > 0)
+            {
+                isPointerTracking = true;
+                UpdateTooltipPosition(e.Touches[0].X);
+            }
         }
 
-        private void OnGraphDragInteraction(object sender, TouchEventArgs e)
+        private void OnGraphDragInteraction(object? sender, TouchEventArgs e)
         {
-            UpdateTooltipPosition(e.Touches[0].X);
+            if (e.Touches?.Length > 0)
+            {
+                UpdateTooltipPosition(e.Touches[0].X);
+            }
         }
 
-        private void OnGraphEndInteraction(object sender, TouchEventArgs e)
+        private void OnGraphEndInteraction(object? sender, TouchEventArgs e)
         {
             isPointerTracking = false;
         }
 
         private void UpdateTooltipPosition(float xPosition)
         {
-            var graphWidth = GraphView.Width;
+            var graphView = this.FindByName<GraphicsView>("GraphView");
+            if (graphView == null) return;
+
+            var graphWidth = graphView.Width;
             if (graphWidth <= 0) return;
 
             float pointSpacing = (float)(graphWidth / (EnhancedGraphDrawable.DataPoints.Length - 1));
@@ -248,7 +279,7 @@ namespace SOLARY.Views
             }
         }
 
-        private void OnSwitchToMainToggled(object sender, ToggledEventArgs e)
+        private void OnSwitchToMainToggled(object? sender, ToggledEventArgs e)
         {
             // Logique pour switcher sur le "main electricity"
             if (e.Value)
@@ -263,17 +294,15 @@ namespace SOLARY.Views
             }
         }
 
-        private void OnDirectClicked(object sender, EventArgs e)
+        private void OnDirectClicked(object? sender, EventArgs e)
         {
-            var vm = BindingContext as HomeViewModel;
-            if (vm != null)
+            if (BindingContext is HomeViewModel vm)
                 vm.IsDirectMode = true;
         }
 
-        private void OnIndirectClicked(object sender, EventArgs e)
+        private void OnIndirectClicked(object? sender, EventArgs e)
         {
-            var vm = BindingContext as HomeViewModel;
-            if (vm != null)
+            if (BindingContext is HomeViewModel vm)
                 vm.IsDirectMode = false;
         }
     }

@@ -4,7 +4,9 @@
              xmlns:viewmodels="clr-namespace:SOLARY.ViewModels"
              x:Class="SOLARY.Views.CodePage"
              BackgroundColor="#F8F9FA"
-             NavigationPage.HasNavigationBar="False">
+             NavigationPage.HasNavigationBar="False"
+             Shell.NavBarIsVisible="False"
+             Shell.TabBarIsVisible="False">
 
     <ContentPage.BindingContext>
         <viewmodels:CodeViewModel/>
@@ -30,19 +32,6 @@
             </Style>
             <Style x:Key="NavTextActiveStyle" TargetType="Label" BasedOn="{StaticResource NavTextStyle}">
                 <Setter Property="TextColor" Value="#FFD602"/>
-                <Setter Property="FontAttributes" Value="Bold"/>
-            </Style>
-            <Style x:Key="CodeDigitStyle" TargetType="Entry">
-                <Setter Property="FontSize" Value="28"/>
-                <Setter Property="FontAttributes" Value="Bold"/>
-                <Setter Property="TextColor" Value="#333333"/>
-                <Setter Property="BackgroundColor" Value="White"/>
-                <Setter Property="HeightRequest" Value="65"/>
-                <Setter Property="WidthRequest" Value="55"/>
-                <Setter Property="HorizontalTextAlignment" Value="Center"/>
-                <Setter Property="VerticalTextAlignment" Value="Center"/>
-                <Setter Property="MaxLength" Value="1"/>
-                <Setter Property="Keyboard" Value="Numeric"/>
             </Style>
         </ResourceDictionary>
     </ContentPage.Resources>
@@ -82,12 +71,14 @@
                     </VerticalStackLayout>
                 </VerticalStackLayout>
 
-                <!-- Carte principale épurée -->
+                <!-- Carte principale épurée avec largeur adaptative -->
                 <Border BackgroundColor="White"
                         StrokeShape="RoundRectangle 25"
-                        Padding="30"
+                        Padding="25"
                         StrokeThickness="0"
-                        Shadow="{Shadow Brush='#20000000', Offset='0,8', Radius='20'}">
+                        Shadow="{Shadow Brush='#20000000', Offset='0,8', Radius='20'}"
+                        HorizontalOptions="Fill"
+                        MaximumWidthRequest="400">
 
                     <VerticalStackLayout Spacing="30">
 
@@ -111,26 +102,33 @@
                             </Border>
                         </VerticalStackLayout>
 
-                        <!-- Saisie du code centrée -->
+                        <!-- Saisie du code centrée et responsive -->
                         <VerticalStackLayout Spacing="25">
                             <Label Text="{Binding CodeInputTitle}" 
-                                   FontSize="20" 
+                                   FontSize="18" 
                                    FontAttributes="Bold" 
                                    TextColor="#333333"
                                    HorizontalOptions="Center"/>
 
-                            <!-- Champs de code avec bordures -->
-                            <VerticalStackLayout Spacing="20" HorizontalOptions="Center">
-                                <HorizontalStackLayout Spacing="15" 
-                                                     HorizontalOptions="Center"
-                                                     x:Name="CodeDigitsContainer">
-                                    <!-- Les Entry seront ajoutées dynamiquement -->
-                                </HorizontalStackLayout>
+                            <!-- Conteneur pour les champs de code - LIGNE UNIQUE -->
+                            <VerticalStackLayout Spacing="20" HorizontalOptions="Fill">
+                                <!-- Conteneur horizontal pour garder tout sur une ligne -->
+                                <ScrollView Orientation="Horizontal" 
+                                           HorizontalScrollBarVisibility="Never"
+                                           HorizontalOptions="Fill">
+                                    <HorizontalStackLayout x:Name="CodeDigitsContainer"
+                                                          Spacing="8"
+                                                          HorizontalOptions="Center"
+                                                          VerticalOptions="Center"
+                                                          MinimumHeightRequest="70">
+                                        <!-- Les Entry seront ajoutées dynamiquement -->
+                                    </HorizontalStackLayout>
+                                </ScrollView>
 
                                 <!-- Contrôles de longueur simplifiés -->
-                                <HorizontalStackLayout Spacing="25" HorizontalOptions="Center">
+                                <HorizontalStackLayout Spacing="20" HorizontalOptions="Center">
                                     <Button Text="−" 
-                                            BackgroundColor="#E8E9EA"
+                                            BackgroundColor="#F5F5F5"
                                             TextColor="#666666"
                                             CornerRadius="25"
                                             HeightRequest="50"
@@ -138,16 +136,22 @@
                                             FontSize="24"
                                             FontAttributes="Bold"
                                             Clicked="OnRemoveDigitClicked"
-                                            IsEnabled="{Binding CanRemoveDigit}"/>
+                                            IsEnabled="{Binding CanRemoveDigit}"
+                                            Shadow="{Shadow Brush='#15000000', Offset='0,2', Radius='6'}"/>
 
-                                    <Label Text="{Binding DigitCount}" 
-                                           FontSize="18"
-                                           FontAttributes="Bold"
-                                           TextColor="#FFD602"
-                                           VerticalOptions="Center"
-                                           HorizontalOptions="Center"
-                                           WidthRequest="60"
-                                           HorizontalTextAlignment="Center"/>
+                                    <VerticalStackLayout Spacing="4" HorizontalOptions="Center" VerticalOptions="Center">
+                                        <Label Text="{Binding DigitCount}" 
+                                               FontSize="20"
+                                               FontAttributes="Bold"
+                                               TextColor="#FFD602"
+                                               HorizontalOptions="Center"
+                                               HorizontalTextAlignment="Center"/>
+                                        <Label Text="chiffres" 
+                                               FontSize="12"
+                                               TextColor="#999999"
+                                               HorizontalOptions="Center"
+                                               HorizontalTextAlignment="Center"/>
+                                    </VerticalStackLayout>
 
                                     <Button Text="+" 
                                             BackgroundColor="#FFD602"
@@ -158,11 +162,12 @@
                                             FontSize="24"
                                             FontAttributes="Bold"
                                             Clicked="OnAddDigitClicked"
-                                            IsEnabled="{Binding CanAddDigit}"/>
+                                            IsEnabled="{Binding CanAddDigit}"
+                                            Shadow="{Shadow Brush='#30FFD602', Offset='0,3', Radius='8'}"/>
                                 </HorizontalStackLayout>
 
                                 <Label Text="4 à 10 chiffres" 
-                                       FontSize="14" 
+                                       FontSize="13" 
                                        TextColor="#999999"
                                        HorizontalOptions="Center"/>
                             </VerticalStackLayout>
@@ -175,18 +180,18 @@
                                     TextColor="White"
                                     CornerRadius="25"
                                     HeightRequest="55"
-                                    FontSize="18"
+                                    FontSize="16"
                                     FontAttributes="Bold"
                                     Clicked="OnSaveCodeClicked"
                                     IsEnabled="{Binding CanSaveCode}"
-                                    Shadow="{Shadow Brush='#3028A745', Offset='0,4', Radius='10'}"/>
+                                    Shadow="{Shadow Brush='#3028A745', Offset='0,4', Radius='12'}"/>
 
                             <Button Text="Effacer tout" 
                                     BackgroundColor="Transparent"
                                     TextColor="#DC3545"
                                     CornerRadius="25"
                                     HeightRequest="50"
-                                    FontSize="16"
+                                    FontSize="14"
                                     BorderColor="#DC3545"
                                     BorderWidth="2"
                                     Clicked="OnClearCodeClicked"/>
@@ -197,23 +202,25 @@
                 <!-- Conseils essentiels uniquement -->
                 <Border BackgroundColor="#FFF9E6"
                         StrokeShape="RoundRectangle 20"
-                        Padding="25"
+                        Padding="20"
                         StrokeThickness="1"
-                        Stroke="#FFD602">
+                        Stroke="#FFD602"
+                        HorizontalOptions="Fill"
+                        MaximumWidthRequest="400">
 
-                    <VerticalStackLayout Spacing="15">
-                        <HorizontalStackLayout Spacing="12" HorizontalOptions="Center">
+                    <VerticalStackLayout Spacing="12">
+                        <HorizontalStackLayout Spacing="10" HorizontalOptions="Center">
                             <Label Text="💡" 
-                                   FontSize="20"/>
+                                   FontSize="18"/>
                             <Label Text="Conseil important" 
-                                   FontSize="18" 
+                                   FontSize="16" 
                                    FontAttributes="Bold" 
                                    TextColor="#B8860B"
                                    VerticalOptions="Center"/>
                         </HorizontalStackLayout>
 
                         <Label Text="Choisissez un code facile à retenir et évitez les combinaisons évidentes comme 1234 ou 0000." 
-                               FontSize="15" 
+                               FontSize="14" 
                                TextColor="#B8860B"
                                HorizontalOptions="Center"
                                HorizontalTextAlignment="Center"
@@ -224,70 +231,74 @@
             </VerticalStackLayout>
         </ScrollView>
 
-        <!-- Bottom Navigation -->
+        <!-- Bottom Navigation - Fixé en bas de l'écran -->
         <Border Grid.Row="1" 
-                BackgroundColor="White" 
-                StrokeShape="RoundRectangle 30,30,0,0"
-                Padding="0" 
-                StrokeThickness="0"
-                HeightRequest="85" 
-                VerticalOptions="End"
-                Shadow="{Shadow Brush='#30000000', Offset='0,-8', Radius='20'}">
+             BackgroundColor="White" 
+             StrokeShape="RoundRectangle 30,30,0,0"
+             Padding="0" 
+             StrokeThickness="0"
+             HeightRequest="80" 
+             VerticalOptions="End"
+             Shadow="{Shadow Brush='#30000000', Offset='0,-5', Radius='15'}"
+             ZIndex="2">
             <Grid RowDefinitions="Auto,*" ColumnDefinitions="*,*,*,*,*">
-                <!-- Indicateur pour l'onglet actif -->
+                <!-- Indicateur jaune pour l'onglet actif -->
                 <BoxView Grid.Row="0" Grid.Column="3" 
-                         HeightRequest="4" 
-                         WidthRequest="50" 
-                         Color="#FFD602" 
-                         HorizontalOptions="Center" 
-                         VerticalOptions="Start"
-                         Margin="0,8,0,0"
-                         CornerRadius="2"/>
+                       HeightRequest="3" 
+                       WidthRequest="40" 
+                       Color="#FFD602" 
+                       HorizontalOptions="Center" 
+                       VerticalOptions="Start"
+                       Margin="0,0,0,0"/>
 
-                <!-- Navigation Items -->
+                <!-- Onglet Accueil -->
                 <VerticalStackLayout Grid.Row="1" Grid.Column="0" 
-                                     Style="{StaticResource NavItemStyle}"
-                                     x:Name="AccueilTab">
+                                   Style="{StaticResource NavItemStyle}"
+                                   x:Name="AccueilTab">
                     <Image Source="icon_home.png" 
-                           Style="{StaticResource NavIconStyle}"/>
+                         Style="{StaticResource NavIconStyle}"/>
                     <Label Text="Accueil" 
-                           Style="{StaticResource NavTextStyle}"/>
+                         Style="{StaticResource NavTextStyle}"/>
                 </VerticalStackLayout>
 
+                <!-- Onglet Statistiques -->
                 <VerticalStackLayout Grid.Row="1" Grid.Column="1" 
-                                     Style="{StaticResource NavItemStyle}"
-                                     x:Name="StatistiquesTab">
+                                   Style="{StaticResource NavItemStyle}"
+                                   x:Name="StatistiquesTab">
                     <Image Source="icon_stats.png" 
-                           Style="{StaticResource NavIconStyle}"/>
+                         Style="{StaticResource NavIconStyle}"/>
                     <Label Text="Statistiques" 
-                           Style="{StaticResource NavTextStyle}"/>
+                         Style="{StaticResource NavTextStyle}"/>
                 </VerticalStackLayout>
 
+                <!-- Onglet Localiser -->
                 <VerticalStackLayout Grid.Row="1" Grid.Column="2" 
-                                     Style="{StaticResource NavItemStyle}"
-                                     x:Name="LocaliserTab">
+                                   Style="{StaticResource NavItemStyle}"
+                                   x:Name="LocaliserTab">
                     <Image Source="icon_map.png" 
-                           Style="{StaticResource NavIconStyle}"/>
+                         Style="{StaticResource NavIconStyle}"/>
                     <Label Text="Localiser" 
-                           Style="{StaticResource NavTextStyle}"/>
+                         Style="{StaticResource NavTextStyle}"/>
                 </VerticalStackLayout>
 
+                <!-- Onglet Code (remplace Scan) -->
                 <VerticalStackLayout Grid.Row="1" Grid.Column="3" 
-                                     Style="{StaticResource NavItemStyle}"
-                                     x:Name="CodeTab">
+                                   Style="{StaticResource NavItemStyle}"
+                                   x:Name="CodeTab">
                     <Image Source="icon_code.png" 
-                           Style="{StaticResource NavIconStyle}"/>
+                         Style="{StaticResource NavIconStyle}"/>
                     <Label Text="Code" 
-                           Style="{StaticResource NavTextActiveStyle}"/>
+                         Style="{StaticResource NavTextActiveStyle}"/>
                 </VerticalStackLayout>
 
+                <!-- Onglet Paramètres -->
                 <VerticalStackLayout Grid.Row="1" Grid.Column="4" 
-                                     Style="{StaticResource NavItemStyle}"
-                                     x:Name="ParametresTab">
+                                   Style="{StaticResource NavItemStyle}"
+                                   x:Name="ParametresTab">
                     <Image Source="icon_settings.png" 
-                           Style="{StaticResource NavIconStyle}"/>
+                         Style="{StaticResource NavIconStyle}"/>
                     <Label Text="Paramètres" 
-                           Style="{StaticResource NavTextStyle}"/>
+                         Style="{StaticResource NavTextStyle}"/>
                 </VerticalStackLayout>
             </Grid>
         </Border>

@@ -5,36 +5,15 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using System.Linq;
 using SOLARY.Model;
 using SOLARY.Services;
 
 namespace SOLARY.ViewModels
 {
-    // Classe BorneModel qui hérite de Borne pour ajouter des propriétés spécifiques à l'UI
+    // Classe BorneModel qui hérite de Borne - toutes les propriétés nécessaires sont déjà dans la classe de base
     public class BorneModel : Borne
     {
-        // Propriété Id pour compatibilité avec MapPage.xaml.cs
-        public int Id => BorneId;
-
-        // Propriété IsAvailable pour compatibilité avec MapPage.xaml.cs
-        public bool IsAvailable => !IsInMaintenance && Status.ToLower() == "disponible";
-
-        // Propriété pour l'adresse complète formatée de manière cohérente
-        public string FullAddress
-        {
-            get
-            {
-                // S'assurer que l'adresse est formatée de manière cohérente
-                if (string.IsNullOrWhiteSpace(Address))
-                    return $"{PostalCode} {City}";
-
-                if (Address.Contains(PostalCode) && Address.Contains(City))
-                    return Address;
-
-                return $"{Address}, {PostalCode} {City}";
-            }
-        }
-
         // Méthode de débogage pour vérifier les coordonnées
         public override string ToString()
         {
@@ -77,7 +56,7 @@ namespace SOLARY.ViewModels
             Task.Run(async () => await LoadBornes());
         }
 
-        // Ajoutons une méthode de débogage pour afficher les coordonnées des bornes
+        // Méthode pour charger les bornes depuis l'API
         public async Task LoadBornes()
         {
             try
@@ -87,33 +66,38 @@ namespace SOLARY.ViewModels
 
                 if (bornes != null)
                 {
-                    Bornes.Clear();
-                    foreach (var borne in bornes)
+                    // Utiliser MainThread pour mettre à jour l'ObservableCollection
+                    await MainThread.InvokeOnMainThreadAsync(() =>
                     {
-                        // Convertir Borne en BorneModel
-                        var borneModel = new BorneModel
+                        Bornes.Clear();
+                        foreach (var borne in bornes)
                         {
-                            BorneId = borne.BorneId,
-                            Name = borne.Name,
-                            Address = borne.Address,
-                            City = borne.City,
-                            PostalCode = borne.PostalCode,
-                            Latitude = borne.Latitude,
-                            Longitude = borne.Longitude,
-                            PowerOutput = borne.PowerOutput,
-                            ChargePercentage = borne.ChargePercentage,
-                            Status = borne.Status,
-                            IsInMaintenance = borne.IsInMaintenance,
-                            CreatedAt = borne.CreatedAt,
-                            LastUsedAt = borne.LastUsedAt,
-                            Distance = borne.Distance
-                        };
+                            // Convertir Borne en BorneModel
+                            var borneModel = new BorneModel
+                            {
+                                BorneId = borne.BorneId,
+                                Name = borne.Name,
+                                Address = borne.Address,
+                                City = borne.City,
+                                PostalCode = borne.PostalCode,
+                                Latitude = borne.Latitude,
+                                Longitude = borne.Longitude,
+                                PowerOutput = borne.PowerOutput,
+                                ChargePercentage = borne.ChargePercentage,
+                                Status = borne.Status,
+                                IsInMaintenance = borne.IsInMaintenance,
+                                CreatedAt = borne.CreatedAt,
+                                LastUsedAt = borne.LastUsedAt,
+                                Distance = borne.Distance,
+                                Casiers = borne.Casiers ?? new List<Casier>()
+                            };
 
-                        // Déboguer les coordonnées
-                        Debug.WriteLine($"[DEBUG] {borneModel}");
+                            // Déboguer les coordonnées
+                            Debug.WriteLine($"[DEBUG] {borneModel}");
 
-                        Bornes.Add(borneModel);
-                    }
+                            Bornes.Add(borneModel);
+                        }
+                    });
 
                     Debug.WriteLine($"[INFO] {Bornes.Count} bornes chargées avec succès");
                 }
@@ -150,7 +134,7 @@ namespace SOLARY.ViewModels
 
                     // Créer l'objet JSON pour cette borne
                     bornesArray.Append("{");
-                    bornesArray.Append($"\"id\": {borne.Id},");
+                    bornesArray.Append($"\"id\": {borne.BorneId},");
                     bornesArray.Append($"\"name\": \"{EscapeJsonString(borne.Name)}\",");
                     bornesArray.Append($"\"address\": \"{EscapeJsonString(address)}\",");
                     bornesArray.Append($"\"lat\": {borne.Latitude.ToString(System.Globalization.CultureInfo.InvariantCulture)},");
@@ -199,6 +183,36 @@ namespace SOLARY.ViewModels
                      .Replace("\n", "\\n")
                      .Replace("\r", "\\r")
                      .Replace("\t", "\\t");
+        }
+
+        // Méthode pour rafraîchir les bornes
+        public async Task RefreshBornes()
+        {
+            await LoadBornes();
+        }
+
+        // Méthode pour obtenir une borne par son ID
+        public BorneModel? GetBorneById(int borneId)
+        {
+            return Bornes.FirstOrDefault(b => b.BorneId == borneId);
+        }
+
+        // Méthode pour filtrer les bornes par statut
+        public List<BorneModel> GetBornesByStatus(string status)
+        {
+            return Bornes.Where(b => b.Status.Equals(status, StringComparison.OrdinalIgnoreCase)).ToList();
+        }
+
+        // Méthode pour obtenir les bornes disponibles
+        public List<BorneModel> GetAvailableBornes()
+        {
+            return Bornes.Where(b => b.IsAvailable).ToList();
+        }
+
+        // Méthode pour obtenir les bornes en maintenance
+        public List<BorneModel> GetMaintenanceBornes()
+        {
+            return Bornes.Where(b => b.IsInMaintenance).ToList();
         }
 
         #region INotifyPropertyChanged

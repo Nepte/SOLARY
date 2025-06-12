@@ -4,7 +4,9 @@
            xmlns:viewmodels="clr-namespace:SOLARY.ViewModels"
            x:Class="SOLARY.Views.MapPage"
            BackgroundColor="Black"
-           NavigationPage.HasNavigationBar="False">
+           NavigationPage.HasNavigationBar="False"
+           Shell.NavBarIsVisible="False"
+           Shell.TabBarIsVisible="False">
 
     <ContentPage.BindingContext>
         <viewmodels:MapViewModel/>
@@ -63,13 +65,16 @@
         </ResourceDictionary>
     </ContentPage.Resources>
 
-    <!-- Structure principale -->
-    <Grid RowDefinitions="*,Auto">
+    <!-- Structure principale avec marge négative pour le plein écran -->
+    <Grid RowDefinitions="*,Auto" 
+          Margin="0,-40,0,-1"
+          BackgroundColor="Black">
+
         <!-- ScrollView global qui contient tout le contenu -->
         <ScrollView Grid.Row="0" x:Name="MainScrollView" Scrolled="OnMainScrolled">
             <VerticalStackLayout Spacing="0">
-                <!-- Conteneur de la carte avec hauteur fixe -->
-                <Grid HeightRequest="450" x:Name="MapContainer">
+                <!-- Conteneur de la carte avec hauteur ajustée -->
+                <Grid HeightRequest="490" x:Name="MapContainer" Margin="0,40,0,0">
                     <WebView x:Name="MapWebView"
                            VerticalOptions="Fill" 
                            HorizontalOptions="Fill"
@@ -226,13 +231,6 @@
                        HorizontalOptions="Center" 
                        VerticalOptions="Start"
                        Margin="0,0,0,0"/>
-
-                <!-- Barre de progression en bas -->
-                <BoxView Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="5"
-                       HeightRequest="4"
-                       Color="#EEEEEE"
-                       VerticalOptions="End"
-                       Margin="40,0,40,15"/>
 
                 <!-- Onglet Accueil -->
                 <VerticalStackLayout Grid.Row="1" Grid.Column="0" 

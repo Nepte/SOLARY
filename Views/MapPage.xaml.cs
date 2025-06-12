@@ -17,6 +17,7 @@ using SOLARY.Model;
 using SOLARY.Services;
 using System.Timers;
 using System.Globalization;
+using System.Threading.Tasks;
 
 namespace SOLARY.Views
 {
@@ -24,6 +25,7 @@ namespace SOLARY.Views
     {
         private MapViewModel? _viewModel;
         private bool _mapInitialized = false;
+        private bool _mapLoading = false;
         private VerticalStackLayout? _stationListLayout;
         private int _selectedStationId = -1;
         private Dictionary<int, Border> _stationCards = new Dictionary<int, Border>();
@@ -45,11 +47,21 @@ namespace SOLARY.Views
         // Utilisateur actuel
         private User? _currentUser;
 
+        // Variables pour l'optimisation mobile
+        private bool _isMobileDevice = false;
+        private int _mapInitRetryCount = 0;
+        private const int MAX_INIT_RETRIES = 3;
+        private TaskCompletionSource<bool>? _mapInitializationTcs;
+
         private WebView? GetMapWebView() => this.FindByName<WebView>("MapWebView");
 
         public MapPage()
         {
             InitializeComponent();
+
+            // Détecter si c'est un appareil mobile
+            _isMobileDevice = DeviceInfo.Platform == DevicePlatform.Android ||
+                             DeviceInfo.Platform == DevicePlatform.iOS;
 
             // Initialiser les services
             _casierService = new CasierService();
@@ -69,7 +81,7 @@ namespace SOLARY.Views
             // Configurer la navigation
             SetupNavigation();
 
-            // Initialiser la carte après le chargement de la page
+            // Initialiser la carte après le chargement de la page avec optimisations mobiles
             this.Loaded += OnPageLoaded;
 
             // Ajouter un gestionnaire pour le scroll principal
@@ -80,7 +92,7 @@ namespace SOLARY.Views
             }
 
             // Initialiser l'utilisateur actuel
-            InitializeCurrentUser();
+            _ = InitializeCurrentUser();
         }
 
         protected override void OnAppearing()
@@ -89,6 +101,72 @@ namespace SOLARY.Views
 
             // Configurer le plein écran pour MapPage
             ConfigureFullScreen();
+
+            // Optimisations spécifiques pour mobile
+            if (_isMobileDevice)
+            {
+                OptimizeForMobile();
+            }
+        }
+
+        private void OptimizeForMobile()
+        {
+            try
+            {
+                var mapWebView = GetMapWebView();
+                if (mapWebView != null)
+                {
+                    // Optimisations WebView pour mobile
+                    mapWebView.BackgroundColor = Colors.Black;
+
+#if ANDROID
+                    // Optimisations Android spécifiques - SUPPRESSION DES MÉTHODES OBSOLÈTES
+                    var handler = mapWebView.Handler as Microsoft.Maui.Handlers.WebViewHandler;
+                    if (handler?.PlatformView is Android.Webkit.WebView androidWebView)
+                    {
+                        // Optimisations de base pour Android
+                        androidWebView.Settings.JavaScriptEnabled = true;
+                        androidWebView.Settings.DomStorageEnabled = true;
+                        androidWebView.Settings.DatabaseEnabled = true;
+                        androidWebView.Settings.CacheMode = Android.Webkit.CacheModes.CacheElseNetwork;
+
+                        // Optimisations tactiles
+                        androidWebView.Settings.SetSupportZoom(true);
+                        androidWebView.Settings.BuiltInZoomControls = false;
+                        androidWebView.Settings.DisplayZoomControls = false;
+                        androidWebView.Settings.LoadWithOverviewMode = true;
+                        androidWebView.Settings.UseWideViewPort = true;
+
+                        // Désactiver les animations coûteuses sur mobile
+                        androidWebView.SetLayerType(Android.Views.LayerType.Hardware, null);
+                    }
+#endif
+
+#if IOS
+                    // Optimisations iOS spécifiques
+                    var handler = mapWebView.Handler as Microsoft.Maui.Handlers.WebViewHandler;
+                    if (handler?.PlatformView is WebKit.WKWebView iosWebView)
+                    {
+                        // Configuration pour iOS
+                        iosWebView.Configuration.AllowsInlineMediaPlayback = true;
+                        iosWebView.Configuration.MediaTypesRequiringUserActionForPlayback = WebKit.WKAudiovisualMediaTypes.None;
+                        
+                        // Optimisations de performance
+                        iosWebView.Configuration.Preferences.JavaScriptEnabled = true;
+                        iosWebView.Configuration.Preferences.JavaScriptCanOpenWindowsAutomatically = false;
+                        
+                        // Optimisations de mémoire
+                        iosWebView.Configuration.ProcessPool = new WebKit.WKProcessPool();
+                    }
+#endif
+                }
+
+                Debug.WriteLine("[MapPage] Optimisations mobiles appliquées");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[MapPage] Erreur lors des optimisations mobiles: {ex.Message}");
+            }
         }
 
         private void ConfigureFullScreen()
@@ -200,7 +278,7 @@ namespace SOLARY.Views
         }
 #endif
 
-        private async void InitializeCurrentUser()
+        private async Task InitializeCurrentUser()
         {
             try
             {
@@ -247,8 +325,8 @@ namespace SOLARY.Views
             bool isScrollingDown = e.ScrollY > _lastScrollY;
             _lastScrollY = e.ScrollY;
 
-            double minHeight = 100;
-            double maxHeight = 490; // Ajusté pour correspondre à la nouvelle hauteur
+            double minHeight = _isMobileDevice ? 120 : 100; // Plus de hauteur minimale sur mobile
+            double maxHeight = _isMobileDevice ? 400 : 490; // Hauteur adaptée pour mobile
             double currentHeight = _mapContainer.HeightRequest;
 
             var searchBar = this.FindByName<SearchBar>("SearchBar");
@@ -267,9 +345,12 @@ namespace SOLARY.Views
                 }
             }
 
+            // Animations plus fluides sur mobile
+            double animationFactor = _isMobileDevice ? 0.3 : 0.5;
+
             if (isScrollingDown && e.ScrollY > 50)
             {
-                double newHeight = Math.Max(minHeight, maxHeight - (e.ScrollY - 50) * 0.5);
+                double newHeight = Math.Max(minHeight, maxHeight - (e.ScrollY - 50) * animationFactor);
                 if (Math.Abs(newHeight - currentHeight) > 5)
                 {
                     _mapContainer.HeightRequest = newHeight;
@@ -277,7 +358,7 @@ namespace SOLARY.Views
             }
             else if (!isScrollingDown && e.ScrollY < 200)
             {
-                double newHeight = Math.Min(maxHeight, minHeight + (200 - e.ScrollY) * 1.75);
+                double newHeight = Math.Min(maxHeight, minHeight + (200 - e.ScrollY) * (animationFactor * 2));
                 if (Math.Abs(newHeight - currentHeight) > 5)
                 {
                     _mapContainer.HeightRequest = newHeight;
@@ -297,56 +378,795 @@ namespace SOLARY.Views
 
         private async void OnPageLoaded(object? sender, EventArgs e)
         {
-            InitializeMap();
-
-            _mainScrollView = this.FindByName<ScrollView>("MainScrollView");
-            _mapContainer = this.FindByName<Grid>("MapContainer");
-
-            var mapWebView = this.FindByName<WebView>("MapWebView");
-            if (mapWebView != null)
+            try
             {
-                mapWebView.BackgroundColor = Colors.Black;
-            }
+                Debug.WriteLine("[MapPage] Page chargée, début de l'initialisation");
 
-            // Charger les casiers pour chaque borne
-            if (_stationListLayout != null && _viewModel != null)
-            {
-                _stationListLayout.Clear();
-                _stationCards.Clear();
-                _casierContainers.Clear();
+                // Initialiser la carte avec retry pour mobile
+                await InitializeMapWithRetry();
 
-                // Charger les casiers pour chaque borne
-                foreach (var borne in _viewModel.Bornes)
+                _mainScrollView = this.FindByName<ScrollView>("MainScrollView");
+                _mapContainer = this.FindByName<Grid>("MapContainer");
+
+                var mapWebView = this.FindByName<WebView>("MapWebView");
+                if (mapWebView != null)
                 {
-                    var casiers = await _casierService.GetCasiersByBorneIdAsync(borne.BorneId);
-                    borne.Casiers = casiers ?? new List<Casier>();
+                    mapWebView.BackgroundColor = Colors.Black;
                 }
 
-                var sortedBornes = _viewModel.Bornes.OrderByDescending(b => b.IsAvailable).ToList();
+                // Charger les données des stations
+                await LoadStationData();
 
-                foreach (var borne in sortedBornes)
+                // Démarrer les mises à jour en temps réel (moins fréquentes sur mobile)
+                StartRealTimeUpdates();
+
+                Debug.WriteLine("[MapPage] Initialisation de la page terminée");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[MapPage] Erreur lors du chargement de la page: {ex.Message}");
+                await DisplayAlert("Erreur", "Erreur lors du chargement de la carte. Veuillez réessayer.", "OK");
+            }
+        }
+
+        // 2. Optimiser la méthode InitializeMapWithRetry pour accélérer l'initialisation
+        private async Task InitializeMapWithRetry()
+        {
+            _mapInitRetryCount = 0;
+            _mapInitializationTcs = new TaskCompletionSource<bool>();
+
+            // Réduire le nombre de tentatives et accélérer le processus
+            const int FAST_INIT_RETRIES = 2;
+
+            while (_mapInitRetryCount < FAST_INIT_RETRIES && !_mapInitialized)
+            {
+                try
                 {
-                    var stationCard = CreateStationCard(borne);
-                    _stationListLayout.Add(stationCard);
-                    _stationCards[borne.Id] = stationCard;
+                    Debug.WriteLine($"[MapPage] Tentative d'initialisation rapide de la carte #{_mapInitRetryCount + 1}");
+
+                    // Initialiser la carte avec un timeout plus court
+                    await InitializeMapAsync();
+
+                    // Attendre l'initialisation avec timeout réduit
+                    var timeoutTask = Task.Delay(_isMobileDevice ? 5000 : 3000); // Réduit de 10000/5000 à 5000/3000
+                    var completedTask = await Task.WhenAny(_mapInitializationTcs.Task, timeoutTask);
+
+                    if (completedTask == _mapInitializationTcs.Task && _mapInitializationTcs.Task.Result)
+                    {
+                        Debug.WriteLine("[MapPage] Carte initialisée avec succès");
+                        break;
+                    }
+                    else
+                    {
+                        Debug.WriteLine($"[MapPage] Timeout ou échec de l'initialisation, tentative {_mapInitRetryCount + 1}");
+                        _mapInitRetryCount++;
+
+                        if (_mapInitRetryCount < FAST_INIT_RETRIES)
+                        {
+                            await Task.Delay(500); // Réduit de 2000/1000 à 500ms
+                            _mapInitializationTcs = new TaskCompletionSource<bool>();
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"[MapPage] Erreur lors de la tentative {_mapInitRetryCount + 1}: {ex.Message}");
+                    _mapInitRetryCount++;
+
+                    if (_mapInitRetryCount < FAST_INIT_RETRIES)
+                    {
+                        await Task.Delay(500);
+                        _mapInitializationTcs = new TaskCompletionSource<bool>();
+                    }
                 }
             }
 
-            var mapWebView2 = this.FindByName<WebView>("MapWebView");
-            mapWebView2?.EvaluateJavaScriptAsync(@"
-                document.body.style.overflow = 'hidden';
-                if (map) {
-                    map.scrollWheelZoom.disable();
-                    map.dragging.disable();
-                    map.touchZoom.disable();
-                    map.doubleClickZoom.disable();
-                    map.boxZoom.disable();
-                    map.keyboard.disable();
+            // Si l'initialisation a échoué, afficher un message mais continuer à essayer en arrière-plan
+            if (!_mapInitialized)
+            {
+                Debug.WriteLine("[MapPage] Échec de l'initialisation rapide, continuant en arrière-plan");
+
+                // Lancer une initialisation en arrière-plan sans bloquer l'interface
+                _ = Task.Run(async () => {
+                    try
+                    {
+                        await Task.Delay(1000);
+                        await MainThread.InvokeOnMainThreadAsync(async () => {
+                            await InitializeMapAsync();
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"[MapPage] Erreur lors de l'initialisation en arrière-plan: {ex.Message}");
+                    }
+                });
+            }
+        }
+
+        private async Task InitializeMapAsync()
+        {
+            if (_mapLoading) return;
+
+            try
+            {
+                _mapLoading = true;
+                Debug.WriteLine("[MapPage] Début de l'initialisation de la carte");
+
+                string htmlContent = await LoadHtmlFromResourceAsync("map.html");
+
+                if (string.IsNullOrWhiteSpace(htmlContent))
+                {
+                    Debug.WriteLine("ERREUR: Contenu HTML non trouvé dans les ressources");
+                    throw new Exception("Fichier map.html non trouvé");
+                }
+
+                var mapWebView = GetMapWebView();
+                if (mapWebView == null)
+                {
+                    throw new Exception("WebView non trouvée");
+                }
+
+                // Optimisations spécifiques pour mobile
+                if (_isMobileDevice)
+                {
+                    await ConfigureMobileWebView(mapWebView);
+                }
+
+                // Préparer les données des bornes
+                string bornesJson = "[]";
+                if (_viewModel != null)
+                {
+                    // Attendre que les bornes soient chargées
+                    int waitCount = 0;
+                    while (_viewModel.Bornes.Count == 0 && waitCount < 50) // 5 secondes max
+                    {
+                        await Task.Delay(100);
+                        waitCount++;
+                    }
+
+                    bornesJson = _viewModel.GetBornesJson();
+                    Debug.WriteLine($"[MapPage] Données des bornes générées: {bornesJson.Length} caractères");
+                }
+
+                // Injecter les données dans le HTML
+                htmlContent = htmlContent.Replace("var stationData = [];", $"var stationData = {bornesJson};");
+
+                // Ajouter des optimisations pour mobile dans le HTML
+                if (_isMobileDevice)
+                {
+                    htmlContent = InjectMobileOptimizations(htmlContent);
+                }
+
+                // Ajouter un timestamp pour éviter le cache
+                string timestamp = DateTime.Now.Ticks.ToString();
+                htmlContent = htmlContent.Replace("</head>",
+                    $"<meta http-equiv=\"Cache-Control\" content=\"no-cache, no-store, must-revalidate\" />" +
+                    $"<meta http-equiv=\"Pragma\" content=\"no-cache\" />" +
+                    $"<meta http-equiv=\"Expires\" content=\"0\" />" +
+                    $"<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no\" />" +
+                    $"<script>console.log('Version: {timestamp}');</script></head>");
+
+                Debug.WriteLine($"[MapPage] Chargement de la carte avec timestamp: {timestamp}");
+
+                // Configurer les événements WebView
+                mapWebView.Navigated -= OnWebViewNavigated; // Éviter les doublons
+                mapWebView.Navigated += OnWebViewNavigated;
+                mapWebView.Navigating -= OnWebViewNavigating;
+                mapWebView.Navigating += OnWebViewNavigating;
+
+                // Charger le contenu
+                mapWebView.Source = new HtmlWebViewSource { Html = htmlContent };
+                mapWebView.IsVisible = true;
+
+                Debug.WriteLine("[MapPage] Contenu HTML chargé dans la WebView");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[MapPage] Erreur lors de l'initialisation: {ex.Message}");
+                throw;
+            }
+            finally
+            {
+                _mapLoading = false;
+            }
+        }
+
+        // 3. Améliorer la fluidité de la carte sur mobile - CORRECTION DE LA SIGNATURE
+        private async Task ConfigureMobileWebView(WebView webView)
+        {
+#if ANDROID
+            var handler = webView.Handler as Microsoft.Maui.Handlers.WebViewHandler;
+            if (handler?.PlatformView is Android.Webkit.WebView androidWebView)
+            {
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    // Configuration optimisée pour Android avec focus sur la performance
+                    androidWebView.Settings.JavaScriptEnabled = true;
+                    androidWebView.Settings.DomStorageEnabled = true;
+                    androidWebView.Settings.AllowFileAccess = true;
+                    androidWebView.Settings.AllowContentAccess = true;
+                    androidWebView.Settings.AllowFileAccessFromFileURLs = true;
+                    androidWebView.Settings.AllowUniversalAccessFromFileURLs = true;
+
+                    // Optimisations de performance critiques
+                    androidWebView.Settings.CacheMode = Android.Webkit.CacheModes.CacheElseNetwork;
+                    androidWebView.Settings.DatabaseEnabled = true;
+                    androidWebView.Settings.LoadWithOverviewMode = true;
+                    androidWebView.Settings.UseWideViewPort = true;
+
+                    // Optimisations tactiles pour une meilleure fluidité
+                    androidWebView.Settings.SetSupportZoom(true);
+                    androidWebView.Settings.BuiltInZoomControls = true;
+                    androidWebView.Settings.DisplayZoomControls = false;
+
+                    // Optimisations de rendu hardware
+                    androidWebView.SetLayerType(Android.Views.LayerType.Hardware, null);
+
+                    // Nettoyer le cache pour éviter les problèmes d'affichage
+                    androidWebView.ClearCache(true);
+                    androidWebView.AddJavascriptInterface(new WebViewJavaScriptInterface(this), "jsBridge");
+
+                    Debug.WriteLine("[MapPage] WebView Android configurée avec optimisations de performance");
+                });
+            }
+#endif
+
+#if IOS || MACCATALYST
+var handler = webView.Handler as Microsoft.Maui.Handlers.WebViewHandler;
+if (handler?.PlatformView is WebKit.WKWebView iosWebView)
+{
+    await MainThread.InvokeOnMainThreadAsync(() =>
+    {
+        // Nettoyer le cache
+        var dataTypes = WebKit.WKWebsiteDataStore.AllWebsiteDataTypes;
+        WebKit.WKWebsiteDataStore.DefaultDataStore.RemoveDataOfTypes(
+            dataTypes,
+            Foundation.NSDate.FromTimeIntervalSinceNow(-604800), // Nettoyer seulement le cache d'une semaine
+            () => Debug.WriteLine("Cache iOS nettoyé")
+        );
+
+        // Optimisations de performance pour iOS
+        var config = iosWebView.Configuration;
+        config.AllowsInlineMediaPlayback = true;
+        config.MediaTypesRequiringUserActionForPlayback = WebKit.WKAudiovisualMediaTypes.None;
+        
+        // CORRECTION : Utiliser la nouvelle API pour iOS 14+
+        if (OperatingSystem.IsIOSVersionAtLeast(14) || OperatingSystem.IsMacCatalystVersionAtLeast(14))
+        {
+            // Utiliser la nouvelle API pour iOS 14+
+            config.DefaultWebpagePreferences.AllowsContentJavaScript = true;
+        }
+        else
+        {
+            // Utiliser l'ancienne API pour les versions antérieures
+#pragma warning disable CA1416 // Validate platform compatibility
+#pragma warning disable CS0618 // Type or member is obsolete
+            config.Preferences.JavaScriptEnabled = true;
+#pragma warning restore CS0618
+#pragma warning restore CA1416
+        }
+        
+        // Optimisations pour le défilement fluide
+        iosWebView.ScrollView.Bounces = true;
+        
+        // Script pour l'interface JavaScript avec optimisations tactiles
+        var scriptContent = @"
+    window.webkit.messageHandlers.jsBridge = { 
+        postMessage: function(message) { 
+            window.location.href = 'bridge://' + encodeURIComponent(JSON.stringify(message)); 
+        } 
+    };
+    
+    // Optimisations tactiles pour iOS
+    document.addEventListener('touchstart', function(e) {
+        if (e.touches.length > 1) {
+            e.preventDefault();
+        }
+    }, { passive: true });
+    
+    document.addEventListener('touchmove', function(e) {
+        if (e.touches.length > 1) {
+            e.preventDefault();
+        }
+    }, { passive: true });
+    
+    // Optimisations de défilement
+    document.body.style.webkitOverflowScrolling = 'touch';
+";
+
+        var script = new WebKit.WKUserScript(
+            new Foundation.NSString(scriptContent),
+            WebKit.WKUserScriptInjectionTime.AtDocumentStart,
+            false
+        );
+
+        iosWebView.Configuration.UserContentController.AddUserScript(script);
+        
+        Debug.WriteLine("[MapPage] WebView iOS configurée avec optimisations de performance");
+    });
+}
+#endif
+        }
+
+        // 4. Améliorer les optimisations mobiles injectées dans le HTML
+        private string InjectMobileOptimizations(string htmlContent)
+        {
+            // Ajouter des optimisations CSS et JavaScript avancées pour mobile
+            var mobileOptimizations = @"
+        <style>
+            /* Optimisations mobiles avancées */
+            * {
+                -webkit-tap-highlight-color: transparent;
+                -webkit-touch-callout: none;
+                -webkit-user-select: none;
+                user-select: none;
+            }
+            
+            body {
+                -webkit-overflow-scrolling: touch;
+                overflow: hidden;
+                position: fixed;
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            
+            .leaflet-container {
+                -webkit-transform: translate3d(0,0,0);
+                transform: translate3d(0,0,0);
+                width: 100% !important;
+                height: 100% !important;
+                background: #121824;
+            }
+            
+            .station-marker {
+                will-change: transform;
+                -webkit-transform: translate3d(0,0,0);
+                transform: translate3d(0,0,0);
+                z-index: 500 !important;
+            }
+            
+            .leaflet-popup {
+                -webkit-transform: translate3d(0,0,0);
+                transform: translate3d(0,0,0);
+                z-index: 600 !important;
+            }
+            
+            /* Optimisations pour les boutons de la carte */
+            .leaflet-control-zoom a {
+                width: 36px !important;
+                height: 36px !important;
+                line-height: 36px !important;
+                font-size: 18px !important;
+            }
+            
+            /* Optimisations pour les popups */
+            .leaflet-popup-content {
+                margin: 14px !important;
+                font-size: 14px !important;
+            }
+            
+            /* Optimisations pour le défilement fluide */
+            .leaflet-fade-anim .leaflet-tile,
+            .leaflet-zoom-anim .leaflet-zoom-animated {
+                will-change: transform, opacity;
+                -webkit-backface-visibility: hidden;
+                backface-visibility: hidden;
+            }
+        </style>
+        
+        <script>
+            // Optimisations JavaScript avancées pour mobile
+            window.isMobile = true;
+            window.devicePixelRatio = window.devicePixelRatio || 1;
+            
+            // Désactiver le zoom par pincement au niveau du document
+            document.addEventListener('gesturestart', function (e) {
+                e.preventDefault();
+            }, {passive: false});
+            
+            document.addEventListener('gesturechange', function (e) {
+                e.preventDefault();
+            }, {passive: false});
+            
+            document.addEventListener('gestureend', function (e) {
+                e.preventDefault();
+            }, {passive: false});
+            
+            // Optimiser les performances de rendu
+            if (window.requestIdleCallback) {
+                window.requestIdleCallback(function() {
+                    console.log('Optimisations mobiles avancées appliquées');
+                });
+            }
+            
+            // Optimisations pour Leaflet
+            document.addEventListener('DOMContentLoaded', function() {
+                if (typeof L !== 'undefined' && L.Map) {
+                    // Optimiser les paramètres de la carte Leaflet
+                    L.Map.mergeOptions({
+                        preferCanvas: true,
+                        renderer: L.canvas(),
+                        fadeAnimation: false,
+                        markerZoomAnimation: true,
+                        zoomAnimation: true,
+                        zoomSnap: 0.5,
+                        zoomDelta: 0.5,
+                        wheelPxPerZoomLevel: 120,
+                        tap: true,
+                        tapTolerance: 15,
+                        bounceAtZoomLimits: false
+                    });
+                    
+                    console.log('Optimisations Leaflet appliquées');
+                }
+            });
+            
+            // Améliorer la réactivité tactile
+            document.addEventListener('touchstart', function() {}, {passive: true});
+            document.addEventListener('touchmove', function() {}, {passive: true});
+            document.addEventListener('touchend', function() {}, {passive: true});
+            document.addEventListener('touchcancel', function() {}, {passive: true});
+        </script>
+    ";
+
+            return htmlContent.Replace("</head>", mobileOptimizations + "</head>");
+        }
+
+        private async Task<string> LoadHtmlFromResourceAsync(string fileName)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    var assembly = IntrospectionExtensions.GetTypeInfo(typeof(MapPage)).Assembly;
+                    var resources = assembly.GetManifestResourceNames();
+
+                    Debug.WriteLine("=== RESSOURCES DISPONIBLES ===");
+                    foreach (var res in resources)
+                    {
+                        Debug.WriteLine($"- {res}");
+                    }
+
+                    string resourceName = $"SOLARY.Resources.Raw.{fileName}";
+                    Debug.WriteLine($"Recherche de la ressource: {resourceName}");
+
+                    if (resources.Contains(resourceName))
+                    {
+                        Debug.WriteLine($"Ressource trouvée: {resourceName}");
+                        using (Stream? stream = assembly.GetManifestResourceStream(resourceName))
+                        {
+                            if (stream != null)
+                            {
+                                using (StreamReader reader = new StreamReader(stream))
+                                {
+                                    string content = reader.ReadToEnd();
+                                    Debug.WriteLine($"Contenu chargé, longueur: {content.Length} caractères");
+                                    return content;
+                                }
+                            }
+                        }
+                    }
+
+                    // Recherche par correspondance partielle
+                    var matchingResource = resources.FirstOrDefault(r => r.EndsWith(fileName, StringComparison.OrdinalIgnoreCase));
+                    if (!string.IsNullOrEmpty(matchingResource))
+                    {
+                        Debug.WriteLine($"Ressource trouvée avec un nom différent: {matchingResource}");
+                        using (Stream? stream = assembly.GetManifestResourceStream(matchingResource))
+                        {
+                            if (stream != null)
+                            {
+                                using (StreamReader reader = new StreamReader(stream))
+                                {
+                                    string content = reader.ReadToEnd();
+                                    Debug.WriteLine($"Contenu chargé, longueur: {content.Length} caractères");
+                                    return content;
+                                }
+                            }
+                        }
+                    }
+
+                    Debug.WriteLine("!!! IMPOSSIBLE DE TROUVER LE FICHIER HTML !!!");
+                    return string.Empty;
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"ERREUR lors du chargement du fichier HTML: {ex}");
+                    return string.Empty;
+                }
+            });
+        }
+
+        private async Task LoadStationData()
+        {
+            try
+            {
+                if (_stationListLayout != null && _viewModel != null)
+                {
+                    // Attendre que les bornes soient chargées
+                    int waitCount = 0;
+                    while (_viewModel.Bornes.Count == 0 && waitCount < 100) // 10 secondes max
+                    {
+                        await Task.Delay(100);
+                        waitCount++;
+                    }
+
+                    await MainThread.InvokeOnMainThreadAsync(async () =>
+                    {
+                        _stationListLayout.Clear();
+                        _stationCards.Clear();
+                        _casierContainers.Clear();
+
+                        // Charger les casiers pour chaque borne
+                        foreach (var borne in _viewModel.Bornes)
+                        {
+                            try
+                            {
+                                var casiers = await _casierService.GetCasiersByBorneIdAsync(borne.BorneId);
+                                borne.Casiers = casiers ?? new List<Casier>();
+                            }
+                            catch (Exception ex)
+                            {
+                                Debug.WriteLine($"[MapPage] Erreur lors du chargement des casiers pour la borne {borne.BorneId}: {ex.Message}");
+                                borne.Casiers = new List<Casier>();
+                            }
+                        }
+
+                        var sortedBornes = _viewModel.Bornes.OrderByDescending(b => b.IsAvailable).ToList();
+
+                        foreach (var borne in sortedBornes)
+                        {
+                            var stationCard = CreateStationCard(borne);
+                            _stationListLayout.Add(stationCard);
+                            _stationCards[borne.Id] = stationCard;
+                        }
+
+                        Debug.WriteLine($"[MapPage] {sortedBornes.Count} stations chargées dans l'interface");
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[MapPage] Erreur lors du chargement des données des stations: {ex.Message}");
+            }
+        }
+
+        // 5. Optimiser la méthode OnWebViewNavigated pour accélérer l'initialisation
+        private void OnWebViewNavigated(object? sender, WebNavigatedEventArgs e)
+        {
+            try
+            {
+                Debug.WriteLine($"[MapPage] WebView navigated: {e.Result}");
+
+                if (e.Result == WebNavigationResult.Success)
+                {
+                    var mapWebView = GetMapWebView();
+                    if (mapWebView != null)
+                    {
+                        // Réduire le délai d'initialisation
+                        int initDelay = _isMobileDevice ? 500 : 200; // Réduit de 1500/500 à 500/200
+
+                        var timer = Application.Current?.Dispatcher.CreateTimer();
+                        if (timer != null)
+                        {
+                            timer.Interval = TimeSpan.FromMilliseconds(initDelay);
+                            timer.Tick += async (s, e) =>
+                            {
+                                timer.Stop();
+                                await MainThread.InvokeOnMainThreadAsync(async () =>
+                                {
+                                    try
+                                    {
+                                        // Script d'initialisation optimisé
+                                        await mapWebView.EvaluateJavaScriptAsync(@"
+                                            console.log('Initialisation rapide de la carte...');
+                                            if (typeof initMap === 'function') {
+                                                // Initialiser la carte immédiatement
+                                                initMap();
+                                                console.log('Fonction initMap appelée');
+                                        
+                                                // Notifier que la carte est prête immédiatement
+                                                if (window.jsBridge) {
+                                                    window.jsBridge.postMessage(JSON.stringify({
+                                                        action: 'mapReady',
+                                                        data: { initialized: true }
+                                                    }));
+                                                }
+                                        
+                                                // Optimisations supplémentaires après chargement
+                                                setTimeout(function() {
+                                                    if (typeof map !== 'undefined' && map) {
+                                                        map.invalidateSize();
+                                                        console.log('Taille de carte invalidée');
+                                                
+                                                        // Optimiser le rendu
+                                                        if (L && L.DomUtil) {
+                                                            L.DomUtil.addClass(map._container, 'leaflet-gpu');
+                                                        }
+                                                    }
+                                                }, 300);
+                                            } else {
+                                                console.error('La fonction initMap n\'est pas disponible');
+                                                if (window.jsBridge) {
+                                                    window.jsBridge.postMessage(JSON.stringify({
+                                                        action: 'error',
+                                                        data: { message: 'initMap not found' }
+                                                    }));
+                                                }
+                                            }
+                                        ");
+
+                                        Debug.WriteLine("[MapPage] Script d'initialisation rapide exécuté");
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Debug.WriteLine($"[MapPage] Erreur lors de l'exécution du script: {ex.Message}");
+                                    }
+                                });
+                            };
+                            timer.Start();
+                        }
+                    }
+                }
+                else
+                {
+                    Debug.WriteLine($"[MapPage] Échec de la navigation WebView: {e.Result}");
+                    _mapInitializationTcs?.TrySetResult(false);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[MapPage] Erreur dans OnWebViewNavigated: {ex.Message}");
+                _mapInitializationTcs?.TrySetResult(false);
+            }
+        }
+
+        // AJOUT DE LA MÉTHODE OnWebViewNavigating MANQUANTE
+        private void OnWebViewNavigating(object? sender, WebNavigatingEventArgs e)
+        {
+            if (e.Url == null) return;
+
+            Debug.WriteLine($"[MapPage] WebView navigating to: {e.Url}");
+
+            if (e.Url.StartsWith("bridge://"))
+            {
+                e.Cancel = true;
+                string messageJson = Uri.UnescapeDataString(e.Url.Substring(9));
+                _ = ProcessBridgeMessage(messageJson); // CORRECTION CS4014
+            }
+        }
+
+        // 6. Ajouter une méthode pour forcer le rafraîchissement de la carte
+        private async Task ForceMapRefresh()
+        {
+            try
+            {
+                var mapWebView = GetMapWebView();
+                if (mapWebView != null && _mapInitialized)
+                {
+                    await mapWebView.EvaluateJavaScriptAsync(@"
+                if (typeof map !== 'undefined' && map) {
+                    // Forcer un rafraîchissement complet de la carte
+                    map.invalidateSize({pan: false});
+                    
+                    // Optimiser le rendu
+                    if (typeof L !== 'undefined') {
+                        // Réinitialiser les tuiles pour un affichage plus net
+                        map.eachLayer(function(layer) {
+                            if (layer instanceof L.TileLayer) {
+                                layer.redraw();
+                            }
+                        });
+                    }
+                    
+                    console.log('Carte rafraîchie avec succès');
                 }
             ");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[MapPage] Erreur lors du rafraîchissement forcé de la carte: {ex.Message}");
+            }
+        }
 
-            // Démarrer les mises à jour en temps réel
-            StartRealTimeUpdates();
+        // 7. Modifier la méthode ProcessBridgeMessage pour améliorer la gestion de l'initialisation
+        private async Task ProcessBridgeMessage(string messageJson)
+        {
+            try
+            {
+                var message = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(messageJson);
+                if (message != null && message.ContainsKey("action"))
+                {
+                    string? action = message["action"]?.ToString();
+                    if (action == null) return;
+
+                    Debug.WriteLine($"[MapPage] Message reçu: {action}");
+
+                    switch (action)
+                    {
+                        case "mapReady":
+                            Debug.WriteLine("[MapPage] Carte prête - initialisation réussie");
+                            _mapInitialized = true;
+                            _mapInitializationTcs?.TrySetResult(true);
+
+                            // Forcer un rafraîchissement immédiat de la carte
+                            await ForceMapRefresh();
+
+                            // Planifier un autre rafraîchissement après un court délai
+                            var refreshTimer = Application.Current?.Dispatcher.CreateTimer();
+                            if (refreshTimer != null)
+                            {
+                                refreshTimer.Interval = TimeSpan.FromMilliseconds(300);
+                                refreshTimer.Tick += async (s, e) =>
+                                {
+                                    refreshTimer.Stop();
+                                    await ForceMapRefresh();
+                                };
+                                refreshTimer.Start();
+                            }
+                            break;
+
+                        case "stationSelected":
+                            if (message.ContainsKey("data") && message["data"] != null)
+                            {
+                                var dataObj = message["data"];
+                                if (dataObj != null)
+                                {
+                                    string? dataStr = dataObj.ToString();
+                                    if (dataStr != null)
+                                    {
+                                        var data = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(dataStr ?? "{}");
+                                        if (data != null && data.ContainsKey("id"))
+                                        {
+                                            int stationId = Convert.ToInt32(data["id"]);
+                                            await MainThread.InvokeOnMainThreadAsync(() => SelectStation(stationId));
+                                        }
+                                    }
+                                }
+                            }
+                            break;
+
+                        case "navigate":
+                            if (message.ContainsKey("data") && message["data"] != null)
+                            {
+                                var dataObj = message["data"];
+                                if (dataObj != null)
+                                {
+                                    string? dataStr = dataObj.ToString();
+                                    if (dataStr != null)
+                                    {
+                                        var data = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(dataStr ?? "{}");
+                                        if (data != null && data.ContainsKey("id") && data.ContainsKey("address") &&
+                                            data.ContainsKey("lat") && data.ContainsKey("lng"))
+                                        {
+                                            int stationId = Convert.ToInt32(data["id"]);
+                                            string address = data["address"].ToString() ?? "";
+                                            double lat = Convert.ToDouble(data["lat"]);
+                                            double lng = Convert.ToDouble(data["lng"]);
+
+                                            await MainThread.InvokeOnMainThreadAsync(async () => {
+                                                await NavigateToStation(stationId, address, lat, lng);
+                                            });
+                                        }
+                                    }
+                                }
+                            }
+                            break;
+
+                        case "error":
+                            Debug.WriteLine("[MapPage] Erreur reçue de la carte JavaScript");
+                            _mapInitializationTcs?.TrySetResult(false);
+                            break;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[MapPage] Erreur lors du traitement du message du pont: {ex.Message}");
+            }
         }
 
         // NOUVELLE méthode CreateStationCard avec support des casiers
@@ -707,6 +1527,7 @@ namespace SOLARY.Views
             return casierContainer;
         }
 
+        // 8. Ajouter une méthode pour ajuster la taille des casiers
         private Border CreateCasierCard(Casier casier, int casierNumber)
         {
             var casierBorder = new Border
@@ -723,7 +1544,7 @@ namespace SOLARY.Views
                 {
                     new ColumnDefinition { Width = GridLength.Auto },
                     new ColumnDefinition { Width = GridLength.Star },
-                    new ColumnDefinition { Width = GridLength.Auto }
+                    new ColumnDefinition { Width = new GridLength(110) } // Largeur fixe pour la colonne du bouton
                 }
             };
 
@@ -775,6 +1596,7 @@ namespace SOLARY.Views
             return casierBorder;
         }
 
+        // 1. Modifier la méthode CreateCasierActionButton pour augmenter la largeur du bouton
         private Button CreateCasierActionButton(Casier casier)
         {
             // Vérifier si c'est l'utilisateur actuel qui a réservé ce casier
@@ -787,14 +1609,17 @@ namespace SOLARY.Views
                 var button = new Button
                 {
                     Text = "Annuler",
-                    FontSize = 12,
+                    FontSize = 9, // Réduit de 10 à 9
                     BackgroundColor = Color.FromArgb("#F44336"), // Rouge
                     TextColor = Colors.White,
-                    CornerRadius = 15,
-                    HeightRequest = 30,
-                    WidthRequest = 80,
+                    CornerRadius = 12, // Réduit de 15 à 12
+                    HeightRequest = 28, // Réduit de 32 à 28
+                    WidthRequest = 85, // Réduit de 105 à 85
+                    Padding = new Thickness(2, 1), // Réduit le padding
                     IsEnabled = true,
-                    VerticalOptions = LayoutOptions.Center
+                    VerticalOptions = LayoutOptions.Center,
+                    HorizontalOptions = LayoutOptions.Center,
+                    FontAttributes = FontAttributes.Bold
                 };
                 button.Clicked += async (s, e) => await OnAnnulerReservationClicked(casier);
                 return button;
@@ -807,14 +1632,17 @@ namespace SOLARY.Views
                 var button = new Button
                 {
                     Text = "Réserver",
-                    FontSize = 12,
+                    FontSize = 9, // Réduit encore de 10 à 9
                     BackgroundColor = hasActiveReservation ? Color.FromArgb("#999999") : Color.FromArgb("#FFD602"),
                     TextColor = hasActiveReservation ? Colors.White : Colors.Black,
-                    CornerRadius = 15,
-                    HeightRequest = 30,
-                    WidthRequest = 80,
+                    CornerRadius = 12, // Réduit de 15 à 12
+                    HeightRequest = 28, // Réduit de 32 à 28
+                    WidthRequest = 85, // Réduit de 105 à 85
+                    Padding = new Thickness(2, 1), // Réduit le padding
                     IsEnabled = !hasActiveReservation,
-                    VerticalOptions = LayoutOptions.Center
+                    VerticalOptions = LayoutOptions.Center,
+                    HorizontalOptions = LayoutOptions.Center,
+                    FontAttributes = FontAttributes.Bold // Ajout pour améliorer la lisibilité
                 };
 
                 if (hasActiveReservation)
@@ -839,14 +1667,17 @@ namespace SOLARY.Views
                 return new Button
                 {
                     Text = "Indisponible",
-                    FontSize = 12,
+                    FontSize = 8, // Réduit de 9 à 8 car le texte est plus long
                     BackgroundColor = Color.FromArgb("#666666"),
                     TextColor = Colors.White,
-                    CornerRadius = 15,
-                    HeightRequest = 30,
-                    WidthRequest = 80,
+                    CornerRadius = 12, // Réduit de 15 à 12
+                    HeightRequest = 28, // Réduit de 32 à 28
+                    WidthRequest = 85, // Réduit de 105 à 85
+                    Padding = new Thickness(1, 1), // Padding minimal
                     IsEnabled = false,
-                    VerticalOptions = LayoutOptions.Center
+                    VerticalOptions = LayoutOptions.Center,
+                    HorizontalOptions = LayoutOptions.Center,
+                    FontAttributes = FontAttributes.Bold
                 };
             }
         }
@@ -1139,7 +1970,8 @@ namespace SOLARY.Views
 
                 if (_mapContainer != null)
                 {
-                    _mapContainer.HeightRequest = 490; // Ajusté
+                    double maxHeight = _isMobileDevice ? 400 : 490;
+                    _mapContainer.HeightRequest = maxHeight;
                 }
 
                 // Afficher les casiers si disponibles
@@ -1207,225 +2039,7 @@ namespace SOLARY.Views
             _selectedStationId = -1;
         }
 
-        private void InitializeMap()
-        {
-            try
-            {
-                string htmlContent = LoadHtmlFromResource("map.html");
-
-                if (string.IsNullOrWhiteSpace(htmlContent))
-                {
-                    Debug.WriteLine("ERREUR: Contenu HTML non trouvé dans les ressources");
-                    DisplayAlert("Erreur", "Impossible de charger la carte. Le fichier map.html n'a pas été trouvé.", "OK");
-                    return;
-                }
-
-                var mapWebView = GetMapWebView();
-
-#if ANDROID
-                var handler = mapWebView?.Handler as Microsoft.Maui.Handlers.WebViewHandler;
-                if (handler != null)
-                {
-                    var webView = handler.PlatformView as Android.Webkit.WebView;
-                    if (webView != null)
-                    {
-                        webView.Settings.JavaScriptEnabled = true;
-                        webView.Settings.DomStorageEnabled = true;
-                        webView.Settings.AllowFileAccess = true;
-                        webView.Settings.AllowContentAccess = true;
-                        webView.Settings.AllowFileAccessFromFileURLs = true;
-                        webView.Settings.AllowUniversalAccessFromFileURLs = true;
-                        webView.Settings.SetSupportZoom(true);
-                        webView.Settings.BuiltInZoomControls = true;
-                        webView.Settings.DisplayZoomControls = false;
-                        webView.Settings.LoadWithOverviewMode = true;
-                        webView.Settings.UseWideViewPort = true;
-                        webView.ClearCache(true);
-                        webView.AddJavascriptInterface(new WebViewJavaScriptInterface(this), "jsBridge");
-                    }
-                }
-#endif
-
-#if IOS || MACCATALYST
-                var handler = mapWebView?.Handler as Microsoft.Maui.Handlers.WebViewHandler;
-                if (handler != null)
-                {
-                    var webView = handler.PlatformView as WebKit.WKWebView;
-                    if (webView != null)
-                    {
-                        var dataTypes = WebKit.WKWebsiteDataStore.AllWebsiteDataTypes;
-                        WebKit.WKWebsiteDataStore.DefaultDataStore.RemoveDataOfTypes(
-                            dataTypes,
-                            Foundation.NSDate.DistantPast,
-                            () => Debug.WriteLine("Cache cleared")
-                        );
-
-                        var scriptContent = @"window.webkit.messageHandlers.jsBridge = { 
-                            postMessage: function(message) { 
-                                window.location.href = 'bridge://' + encodeURIComponent(JSON.stringify(message)); 
-                            } 
-                        };";
-
-                        var script = new WebKit.WKUserScript(
-                            new Foundation.NSString(scriptContent),
-                            WebKit.WKUserScriptInjectionTime.AtDocumentStart,
-                            false
-                        );
-
-                        webView.Configuration.UserContentController.AddUserScript(script);
-                    }
-                }
-#endif
-
-                string bornesJson = "[]";
-                if (_viewModel != null)
-                {
-                    bornesJson = _viewModel.GetBornesJson();
-                    Debug.WriteLine($"[DEBUG] Données des bornes générées: {bornesJson}");
-                }
-
-                htmlContent = htmlContent.Replace("var stationData = [];", $"var stationData = {bornesJson};");
-
-                string timestamp = DateTime.Now.Ticks.ToString();
-                htmlContent = htmlContent.Replace("</head>",
-                    $"<meta http-equiv=\"Cache-Control\" content=\"no-cache, no-store, must-revalidate\" />" +
-                    $"<meta http-equiv=\"Pragma\" content=\"no-cache\" />" +
-                    $"<meta http-equiv=\"Expires\" content=\"0\" />" +
-                    $"<script>console.log('Version: {timestamp}');</script></head>");
-
-                Debug.WriteLine($"Chargement de la carte avec timestamp: {timestamp}");
-
-                if (mapWebView != null)
-                {
-                    mapWebView.Source = new HtmlWebViewSource { Html = htmlContent };
-                    mapWebView.Navigated += OnWebViewNavigated;
-                    mapWebView.Navigating += OnWebViewNavigating;
-                    mapWebView.IsVisible = true;
-                }
-            }
-            catch (Exception ex)
-            {
-                DisplayAlert("Erreur", $"Erreur lors de l'initialisation de la carte: {ex.Message}", "OK");
-                Debug.WriteLine($"Erreur d'initialisation de la carte: {ex}");
-            }
-        }
-
-        private string EscapeJsonString(string str)
-        {
-            if (string.IsNullOrEmpty(str))
-                return string.Empty;
-
-            return str.Replace("\\", "\\\\")
-                     .Replace("\"", "\\\"")
-                     .Replace("\n", "\\n")
-                     .Replace("\r", "\\r")
-                     .Replace("\t", "\\t");
-        }
-
-        private void OnWebViewNavigated(object? sender, WebNavigatedEventArgs e)
-        {
-            Debug.WriteLine($"WebView navigated: {e.Result}");
-            _mapInitialized = true;
-
-            var mapWebView = GetMapWebView();
-            mapWebView?.EvaluateJavaScriptAsync(@"
-                setTimeout(function() {
-                    console.log('Initialisation de la carte...');
-                    if (typeof initMap === 'function') {
-                        initMap();
-                        console.log('Fonction initMap appelée');
-                        console.log('Données des bornes:', JSON.stringify(stationData));
-                    } else {
-                        console.error('La fonction initMap n\'est pas disponible');
-                    }
-                }, 500);
-            ");
-        }
-
-        private void OnWebViewNavigating(object? sender, WebNavigatingEventArgs e)
-        {
-            if (e.Url == null) return;
-
-            Debug.WriteLine($"WebView navigating to: {e.Url}");
-
-            if (e.Url.StartsWith("bridge://"))
-            {
-                e.Cancel = true;
-                string messageJson = Uri.UnescapeDataString(e.Url.Substring(9));
-                ProcessBridgeMessage(messageJson);
-            }
-        }
-
-        private void ProcessBridgeMessage(string messageJson)
-        {
-            try
-            {
-                var message = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(messageJson);
-                if (message != null && message.ContainsKey("action"))
-                {
-                    string? action = message["action"]?.ToString();
-                    if (action == null) return;
-
-                    switch (action)
-                    {
-                        case "mapReady":
-                            Debug.WriteLine("Carte prête");
-                            break;
-                        case "error":
-                            if (message.ContainsKey("data") && message["data"] != null)
-                            {
-                                var dataObj = message["data"];
-                                if (dataObj != null)
-                                {
-                                    string? dataStr = dataObj.ToString();
-                                    if (dataStr != null)
-                                    {
-                                        var data = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(dataStr ?? "{}");
-                                        if (data != null && data.ContainsKey("id"))
-                                        {
-                                            int stationId = Convert.ToInt32(data["id"]);
-                                            SelectStation(stationId);
-                                        }
-                                    }
-                                }
-                            }
-                            break;
-                        case "navigate":
-                            if (message.ContainsKey("data") && message["data"] != null)
-                            {
-                                var dataObj = message["data"];
-                                if (dataObj != null)
-                                {
-                                    string? dataStr = dataObj.ToString();
-                                    if (dataStr != null)
-                                    {
-                                        var data = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(dataStr ?? "{}");
-                                        if (data != null && data.ContainsKey("id") && data.ContainsKey("address") &&
-                                            data.ContainsKey("lat") && data.ContainsKey("lng"))
-                                        {
-                                            int stationId = Convert.ToInt32(data["id"]);
-                                            string address = data["address"].ToString() ?? "";
-                                            double lat = Convert.ToDouble(data["lat"]);
-                                            double lng = Convert.ToDouble(data["lng"]);
-
-                                            MainThread.BeginInvokeOnMainThread(() => {
-                                                NavigateToStation(stationId, address, lat, lng);
-                                            });
-                                        }
-                                    }
-                                }
-                            }
-                            break;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Erreur lors du traitement du message du pont: {ex.Message}");
-            }
-        }
-
-        private async void NavigateToStation(int stationId, string address, double latitude, double longitude)
+        private async Task NavigateToStation(int stationId, string address, double latitude, double longitude)
         {
             try
             {
@@ -1500,87 +2114,6 @@ namespace SOLARY.Views
             }
         }
 
-        private string LoadHtmlFromResource(string fileName)
-        {
-            try
-            {
-                var assembly = IntrospectionExtensions.GetTypeInfo(typeof(MapPage)).Assembly;
-                var resources = assembly.GetManifestResourceNames();
-
-                Debug.WriteLine("=== RESSOURCES DISPONIBLES ===");
-                foreach (var res in resources)
-                {
-                    Debug.WriteLine($"- {res}");
-                }
-
-                string resourceName = $"SOLARY.Resources.Raw.{fileName}";
-                Debug.WriteLine($"Essai 1: Recherche de la ressource: {resourceName}");
-
-                if (resources.Contains(resourceName))
-                {
-                    Debug.WriteLine($"Ressource trouvée: {resourceName}");
-                    using (Stream? stream = assembly.GetManifestResourceStream(resourceName))
-                    {
-                        if (stream != null)
-                        {
-                            using (StreamReader reader = new StreamReader(stream))
-                            {
-                                string content = reader.ReadToEnd();
-                                Debug.WriteLine($"Contenu chargé, longueur: {content.Length} caractères");
-                                return content;
-                            }
-                        }
-                    }
-                }
-
-                Debug.WriteLine("Essai 2: Recherche par correspondance partielle");
-                var matchingResource = resources.FirstOrDefault(r => r.EndsWith(fileName, StringComparison.OrdinalIgnoreCase));
-                if (!string.IsNullOrEmpty(matchingResource))
-                {
-                    Debug.WriteLine($"Ressource trouvée avec un nom différent: {matchingResource}");
-                    using (Stream? stream = assembly.GetManifestResourceStream(matchingResource))
-                    {
-                        if (stream != null)
-                        {
-                            using (StreamReader reader = new StreamReader(stream))
-                            {
-                                string content = reader.ReadToEnd();
-                                Debug.WriteLine($"Contenu chargé, longueur: {content.Length} caractères");
-                                return content;
-                            }
-                        }
-                    }
-                }
-
-                Debug.WriteLine("Essai 3: Recherche de n'importe quel fichier HTML");
-                matchingResource = resources.FirstOrDefault(r => r.EndsWith(".html", StringComparison.OrdinalIgnoreCase));
-                if (!string.IsNullOrEmpty(matchingResource))
-                {
-                    Debug.WriteLine($"Fichier HTML trouvé: {matchingResource}");
-                    using (Stream? stream = assembly.GetManifestResourceStream(matchingResource))
-                    {
-                        if (stream != null)
-                        {
-                            using (StreamReader reader = new StreamReader(stream))
-                            {
-                                string content = reader.ReadToEnd();
-                                Debug.WriteLine($"Contenu chargé, longueur: {content.Length} caractères");
-                                return content;
-                            }
-                        }
-                    }
-                }
-
-                Debug.WriteLine("!!! IMPOSSIBLE DE TROUVER LE FICHIER HTML !!!");
-                return string.Empty;
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"ERREUR CRITIQUE lors du chargement du fichier HTML: {ex}");
-                return string.Empty;
-            }
-        }
-
         private void SetupNavigation()
         {
             var accueilTab = this.FindByName<VerticalStackLayout>("AccueilTab");
@@ -1630,28 +2163,48 @@ namespace SOLARY.Views
             await DisplayAlert("Filtres", "La fonctionnalité de filtres n'est pas encore implémentée.", "OK");
         }
 
-        private void OnMyLocationClicked(object? sender, EventArgs e)
+        private async void OnMyLocationClicked(object? sender, EventArgs e)
         {
             try
             {
                 if (!_mapInitialized)
                 {
-                    DisplayAlert("Erreur", "La carte n'est pas encore initialisée. Veuillez réessayer dans quelques instants.", "OK");
+                    await DisplayAlert("Erreur", "La carte n'est pas encore initialisée. Veuillez réessayer dans quelques instants.", "OK");
                     return;
                 }
 
                 var mapWebView = GetMapWebView();
-                mapWebView?.EvaluateJavaScriptAsync("centerOnUserLocation()");
+                if (mapWebView != null)
+                {
+                    await mapWebView.EvaluateJavaScriptAsync("centerOnUserLocation()");
+                }
             }
             catch (Exception ex)
             {
-                DisplayAlert("Erreur", $"Erreur lors de la géolocalisation: {ex.Message}", "OK");
+                await DisplayAlert("Erreur", $"Erreur lors de la géolocalisation: {ex.Message}", "OK");
             }
         }
 
         private async void OnLayersClicked(object? sender, EventArgs e)
         {
-            await DisplayAlert("Vue 3D", "La fonctionnalité de vue 3D n'est pas encore implémentée.", "OK");
+            try
+            {
+                if (!_mapInitialized)
+                {
+                    await DisplayAlert("Erreur", "La carte n'est pas encore initialisée. Veuillez réessayer dans quelques instants.", "OK");
+                    return;
+                }
+
+                var mapWebView = GetMapWebView();
+                if (mapWebView != null)
+                {
+                    await mapWebView.EvaluateJavaScriptAsync("toggle3DView()");
+                }
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlert("Erreur", $"Erreur lors du changement de vue: {ex.Message}", "OK");
+            }
         }
 
         private async void OnCenterClicked(object? sender, EventArgs e)
@@ -1665,7 +2218,10 @@ namespace SOLARY.Views
                 }
 
                 var mapWebView = GetMapWebView();
-                mapWebView?.EvaluateJavaScriptAsync("centerOnUserLocation()");
+                if (mapWebView != null)
+                {
+                    await mapWebView.EvaluateJavaScriptAsync("centerMap()");
+                }
             }
             catch (Exception ex)
             {
@@ -1673,46 +2229,55 @@ namespace SOLARY.Views
             }
         }
 
-        private void OnZoomInClicked(object? sender, EventArgs e)
+        private async void OnZoomInClicked(object? sender, EventArgs e)
         {
             try
             {
                 if (!_mapInitialized) return;
                 var mapWebView = GetMapWebView();
-                mapWebView?.EvaluateJavaScriptAsync("zoomIn()");
+                if (mapWebView != null)
+                {
+                    await mapWebView.EvaluateJavaScriptAsync("zoomIn()");
+                }
             }
             catch (Exception ex)
             {
-                DisplayAlert("Erreur", $"Erreur lors du zoom: {ex.Message}", "OK");
+                await DisplayAlert("Erreur", $"Erreur lors du zoom: {ex.Message}", "OK");
             }
         }
 
-        private void OnZoomOutClicked(object? sender, EventArgs e)
+        private async void OnZoomOutClicked(object? sender, EventArgs e)
         {
             try
             {
                 if (!_mapInitialized) return;
                 var mapWebView = GetMapWebView();
-                mapWebView?.EvaluateJavaScriptAsync("zoomOut()");
+                if (mapWebView != null)
+                {
+                    await mapWebView.EvaluateJavaScriptAsync("zoomOut()");
+                }
             }
             catch (Exception ex)
             {
-                DisplayAlert("Erreur", $"Erreur lors du zoom: {ex.Message}", "OK");
+                await DisplayAlert("Erreur", $"Erreur lors du zoom: {ex.Message}", "OK");
             }
         }
 
-        private void ZoomToStation(int stationId)
+        private async void ZoomToStation(int stationId)
         {
             try
             {
                 if (!_mapInitialized) return;
 
                 var mapWebView = GetMapWebView();
-                mapWebView?.EvaluateJavaScriptAsync($"zoomToStation({stationId})");
+                if (mapWebView != null)
+                {
+                    await mapWebView.EvaluateJavaScriptAsync($"zoomToStation({stationId})");
+                }
             }
             catch (Exception ex)
             {
-                DisplayAlert("Erreur", $"Erreur lors du zoom vers la station: {ex.Message}", "OK");
+                await DisplayAlert("Erreur", $"Erreur lors du zoom vers la station: {ex.Message}", "OK");
             }
         }
 
@@ -1724,13 +2289,16 @@ namespace SOLARY.Views
                 // Arrêter le timer existant s'il y en a un
                 StopRealTimeUpdates();
 
-                // Créer un nouveau timer pour les mises à jour toutes les 30 secondes
-                _casierUpdateTimer = new System.Timers.Timer(30000); // 30 secondes
+                // Intervalle plus long sur mobile pour économiser la batterie
+                int updateInterval = _isMobileDevice ? 60000 : 30000; // 60s mobile, 30s desktop
+
+                // Créer un nouveau timer pour les mises à jour
+                _casierUpdateTimer = new System.Timers.Timer(updateInterval);
                 _casierUpdateTimer.Elapsed += OnCasierUpdateTimer;
                 _casierUpdateTimer.AutoReset = true;
                 _casierUpdateTimer.Enabled = true;
 
-                Debug.WriteLine("[MapPage] Mises à jour en temps réel démarrées");
+                Debug.WriteLine($"[MapPage] Mises à jour en temps réel démarrées (intervalle: {updateInterval}ms)");
             }
             catch (Exception ex)
             {
@@ -1797,8 +2365,8 @@ namespace SOLARY.Views
             [Android.Webkit.JavascriptInterface]
             public void PostMessage(string message)
             {
-                MainThread.BeginInvokeOnMainThread(() => {
-                    _mapPage.ProcessBridgeMessage(message);
+                MainThread.InvokeOnMainThreadAsync(() => {
+                    _ = _mapPage.ProcessBridgeMessage(message);
                 });
             }
         }

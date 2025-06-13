@@ -32,9 +32,14 @@
 
             <!-- Adresse e-mail -->
             <StackLayout>
-                <StackLayout Orientation="Horizontal" Spacing="5" VerticalOptions="Center">
-                    <Image Source="mail.png" Aspect="AspectFit" HeightRequest="25" VerticalOptions="Center" />
-                    <Entry Placeholder="Adresse e-mail"
+                <Grid ColumnDefinitions="Auto, *">
+                    <Image Grid.Column="0" 
+                           Source="mail.png" 
+                           Aspect="AspectFit" 
+                           HeightRequest="25" 
+                           VerticalOptions="Center" />
+                    <Entry Grid.Column="1"
+                           Placeholder="Adresse e-mail"
                            Keyboard="Email"
                            Text="{Binding Email}"
                            FontSize="15"
@@ -42,16 +47,21 @@
                            TextColor="White"
                            PlaceholderColor="White"
                            BackgroundColor="Transparent"
-                           HorizontalOptions="FillAndExpand"/>
-                </StackLayout>
+                           HorizontalOptions="Fill"/>
+                </Grid>
                 <BoxView HeightRequest="1" BackgroundColor="White" />
             </StackLayout>
 
             <!-- Mot de passe -->
             <StackLayout>
-                <StackLayout Orientation="Horizontal" Spacing="10" VerticalOptions="Center">
-                    <Image Source="password_icon.png" Aspect="AspectFit" HeightRequest="25" VerticalOptions="Center" />
-                    <Entry x:Name="PasswordEntry"
+                <Grid ColumnDefinitions="Auto, *, Auto">
+                    <Image Grid.Column="0" 
+                           Source="password_icon.png" 
+                           Aspect="AspectFit" 
+                           HeightRequest="25" 
+                           VerticalOptions="Center" />
+                    <Entry Grid.Column="1"
+                           x:Name="PasswordEntry"
                            Placeholder="Mot de passe"
                            IsPassword="True"
                            FontSize="15"
@@ -60,8 +70,9 @@
                            TextColor="White"
                            PlaceholderColor="White"
                            BackgroundColor="Transparent"
-                           HorizontalOptions="FillAndExpand" />
-                    <Image x:Name="EyeIcon"
+                           HorizontalOptions="Fill" />
+                    <Image Grid.Column="2"
+                           x:Name="EyeIcon"
                            Source="eye_closed.png"
                            HeightRequest="25"
                            VerticalOptions="Center">
@@ -69,15 +80,20 @@
                             <TapGestureRecognizer Tapped="TogglePasswordVisibility" />
                         </Image.GestureRecognizers>
                     </Image>
-                </StackLayout>
+                </Grid>
                 <BoxView HeightRequest="1" BackgroundColor="White" />
             </StackLayout>
 
             <!-- Confirmer le mot de passe -->
             <StackLayout>
-                <StackLayout Orientation="Horizontal" Spacing="10" VerticalOptions="Center">
-                    <Image Source="password_icon.png" Aspect="AspectFit" HeightRequest="25" VerticalOptions="Center" />
-                    <Entry x:Name="ConfirmPasswordEntry"
+                <Grid ColumnDefinitions="Auto, *, Auto">
+                    <Image Grid.Column="0" 
+                           Source="password_icon.png" 
+                           Aspect="AspectFit" 
+                           HeightRequest="25" 
+                           VerticalOptions="Center" />
+                    <Entry Grid.Column="1"
+                           x:Name="ConfirmPasswordEntry"
                            Placeholder="Confirmer le mot de passe"
                            IsPassword="True"
                            FontSize="15"
@@ -86,39 +102,58 @@
                            TextColor="White"
                            PlaceholderColor="White"
                            BackgroundColor="Transparent"
-                           HorizontalOptions="FillAndExpand" />
-                    <Image x:Name="ConfirmEyeIcon"
+                           HorizontalOptions="Fill" />
+                    <Image Grid.Column="2"
+                           x:Name="ConfirmEyeIcon"
                            Source="eye_closed.png"
                            HeightRequest="25"
                            VerticalOptions="Center">
                         <Image.GestureRecognizers>
-                            <TapGestureRecognizer Tapped="ToggleConfirmPasswordVisibility" />
+                            <TapGestureRecognizer Tapped="TogglePasswordVisibility" />
                         </Image.GestureRecognizers>
                     </Image>
-                </StackLayout>
+                </Grid>
                 <BoxView HeightRequest="1" BackgroundColor="White" />
             </StackLayout>
 
-            <!-- Checkbox pour les termes et conditions -->
-            <StackLayout Orientation="Horizontal" Spacing="5" VerticalOptions="Center">
-                <CheckBox x:Name="TermsCheckBox" Color="#FFD602" IsChecked="{Binding IsTermsAccepted}" />
-                <Label Text="J'accepte les "
-                       FontFamily="PoppinsRegular"
-                       FontSize="14"
-                       TextColor="White" />
-                <Label Text="Termes et conditions"
-                       FontFamily="PoppinsRegular"
-                       FontSize="14"
-                       TextColor="#FFD602" />
-                <Label Text=" et "
-                       FontFamily="PoppinsRegular"
-                       FontSize="14"
-                       TextColor="White" />
-                <Label Text="Politiques de confidentialité."
-                       FontFamily="PoppinsRegular"
-                       FontSize="14"
-                       TextColor="#FFD602" />
-            </StackLayout>
+            <!-- Espace supplémentaire avant la checkbox -->
+            <BoxView HeightRequest="10" BackgroundColor="Transparent" />
+
+            <!-- Checkbox pour les termes et conditions sur une seule ligne -->
+            <Grid ColumnDefinitions="Auto, *" RowDefinitions="Auto" Margin="0,-10,0,0">
+                <CheckBox x:Name="TermsCheckBox" 
+                          Grid.Column="0"
+                          Color="#FFD602" 
+                          IsChecked="{Binding IsTermsAccepted}"
+                          VerticalOptions="Center" />
+
+                <Label Grid.Column="1" Margin="-10,0,0,0" VerticalOptions="Center">
+                    <Label.FormattedText>
+                        <FormattedString>
+                            <Span Text="J'accepte les " 
+                                  FontFamily="PoppinsRegular" 
+                                  FontSize="14" 
+                                  TextColor="White" />
+                            <Span Text="Termes et conditions" 
+                                  FontFamily="PoppinsRegular" 
+                                  FontSize="14" 
+                                  TextColor="#FFD602" />
+                            <Span Text=" et" 
+                                  FontFamily="PoppinsRegular" 
+                                  FontSize="14" 
+                                  TextColor="White" />
+                            <Span Text=" Politiques de confidentialité" 
+                                  FontFamily="PoppinsRegular" 
+                                  FontSize="14" 
+                                  TextColor="#FFD602" />
+                            <Span Text="." 
+                                  FontFamily="PoppinsRegular" 
+                                  FontSize="14" 
+                                  TextColor="White" />
+                        </FormattedString>
+                    </Label.FormattedText>
+                </Label>
+            </Grid>
 
             <!-- Bouton S'inscrire -->
             <Button Text="S'inscrire"

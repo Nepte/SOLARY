@@ -4,6 +4,9 @@
   xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
   x:Class="SOLARY.Views.HomePage"
   BackgroundColor="White"
+  NavigationPage.HasNavigationBar="False"
+  Shell.NavBarIsVisible="False"
+  Shell.TabBarIsVisible="False"
   xmlns:viewmodels="clr-namespace:SOLARY.ViewModels">
 
     <ContentPage.BindingContext>
@@ -14,6 +17,8 @@
         <ResourceDictionary>
             <viewmodels:BoolToColorConverter x:Key="BoolToColorConverter"/>
             <viewmodels:ProgressWidthConverter x:Key="ProgressWidthConverter"/>
+            <viewmodels:BatteryToColorConverter x:Key="BatteryToColorConverter"/>
+            <viewmodels:UsageToColorConverter x:Key="UsageToColorConverter"/>
             <Style x:Key="CardShadowStyle" TargetType="Border">
                 <Setter Property="Shadow">
                     <Setter.Value>
@@ -70,74 +75,62 @@
             <Style x:Key="NavTextActiveStyle" TargetType="Label" BasedOn="{StaticResource NavTextStyle}">
                 <Setter Property="TextColor" Value="#FFD602"/>
             </Style>
+            <Color x:Key="YellowColor">#FFD602</Color>
+            <Color x:Key="RedColor">#F04438</Color>
+            <Color x:Key="YellowBackgroundColor">#FFF8E0</Color>
+            <Color x:Key="RedBackgroundColor">#FEECEB</Color>
         </ResourceDictionary>
     </ContentPage.Resources>
 
-    <!-- Utilisation d'un Grid principal avec une taille fixe pour la barre de navigation -->
     <Grid RowDefinitions="*, Auto">
-        <!-- Contenu principal avec défilement -->
-        <ScrollView Grid.Row="0" Margin="0,-10,0,0">
+        <ScrollView Grid.Row="0" Margin="0,-40,0,0">
             <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" 
-                Padding="20,0,20,20" 
+                Padding="20,40,20,20" 
                 RowSpacing="15">
 
-                <!-- Header - Remonté plus haut -->
-                <Grid Grid.Row="0" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" Margin="0,0,0,0">
-                    <!-- Bonjour Erzen -->
+                <!-- Header -->
+                <Grid Grid.Row="0" ColumnDefinitions="*" RowDefinitions="Auto,Auto" Margin="0,0,0,0">
                     <Label Grid.Row="0" Grid.Column="0"
-                         Text="Bonjour Erzen" 
+                         Text="Bonjour" 
                          TextColor="#333333" 
                          FontSize="32" 
                          FontAttributes="Bold"/>
-
-                    <!-- Date -->
                     <Label Grid.Row="1" Grid.Column="0"
-                         Text="Date d'aujourd'hui :" 
+                         Text="{Binding FormattedDate}" 
                          TextColor="#999999" 
                          FontSize="16"
                          Margin="0,0,0,10"/>
-
-                    <!-- Switch repositionné -->
-                    <VerticalStackLayout Grid.Row="0" Grid.Column="1" Grid.RowSpan="2" 
-                                       HorizontalOptions="End" 
-                                       VerticalOptions="Start"
-                                       Spacing="5"
-                                       Margin="0,-5,0,0">
-                        <Switch IsToggled="True" 
-                              OnColor="#FFD602" 
-                              ThumbColor="White"
-                              Toggled="OnSwitchToMainToggled"
-                              HorizontalOptions="End"/>
-                        <Label Text="Passage à l'électricité principale" 
-                             TextColor="#666666" 
-                             FontSize="12"
-                             HorizontalOptions="End"/>
-                    </VerticalStackLayout>
                 </Grid>
 
-                <!-- Container pour aligner les cartes -->
                 <Grid Grid.Row="1" Grid.RowSpan="3" RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*" HorizontalOptions="Center">
 
-                    <!-- Main Energy Card -->
+                    <!-- Main Battery Card -->
                     <Border Grid.Row="0" 
                           Style="{StaticResource MainCardStyle}"
                           WidthRequest="375">
                         <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
+                            <!-- Section du cercle avec l'icône batterie -->
                             <HorizontalStackLayout Spacing="10">
-                                <Border BackgroundColor="#FFF8E0" 
-                                      StrokeShape="RoundRectangle 20"
-                                      HeightRequest="40" 
-                                      WidthRequest="40" 
-                                      Padding="0" 
+                                <Grid HeightRequest="36" 
+                                      WidthRequest="36" 
                                       HorizontalOptions="Start" 
-                                      VerticalOptions="Center"
-                                      StrokeThickness="0">
-                                    <Image Source="lightbulb.png" 
-                                         HeightRequest="24" 
-                                         WidthRequest="24"
+                                      VerticalOptions="Center">
+                                    <GraphicsView x:Name="CircularProgressView" 
+                                                HeightRequest="36" 
+                                                WidthRequest="36" 
+                                                HorizontalOptions="Fill" 
+                                                VerticalOptions="Fill"
+                                                BackgroundColor="Transparent"/>
+
+                                    <Image x:Name="ElectricityIcon"
+                                         Source="icon_electricity_yellow.png"
+                                         HeightRequest="16"
+                                         WidthRequest="16"
                                          HorizontalOptions="Center"
-                                         VerticalOptions="Center"/>
-                                </Border>
+                                         VerticalOptions="Center"
+                                         Margin="0"/>
+                                </Grid>
+
                                 <Label Text="{Binding CurrentKwh, StringFormat='{0:F3}'}" 
                                      FontSize="30" 
                                      FontAttributes="Bold" 
@@ -150,34 +143,33 @@
                             </HorizontalStackLayout>
 
                             <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="0,5,0,0">
-                                <Label Text="Utilisation du panneau solaire" 
+                                <Label Text="Pourcentage de batterie de la borne" 
                                      TextColor="#666666" 
                                      FontSize="16"
                                      VerticalOptions="Center"/>
                                 <Label Grid.Column="1" 
-                                     Text="{Binding SolarUsagePercent, StringFormat='{0}%'}" 
-                                     TextColor="#FFD602" 
+                                     x:Name="PercentLabel"
+                                     Text="{Binding BatteryLevel, StringFormat='{0}%'}" 
+                                     TextColor="{Binding BatteryLevel, Converter={StaticResource BatteryToColorConverter}, ConverterParameter='text'}" 
                                      FontAttributes="Bold" 
                                      FontSize="16" 
                                      VerticalOptions="Center"/>
                             </Grid>
 
                             <Grid Grid.Row="2" HeightRequest="6" Margin="0,5,0,0" x:Name="ProgressContainer">
-                                <Border StrokeThickness="0" BackgroundColor="#EEEEEE" StrokeShape="RoundRectangle 3">
-                                    <Rectangle Fill="#EEEEEE" HeightRequest="6"/>
-                                </Border>
-                                <Border StrokeThickness="0" BackgroundColor="#FFD602" StrokeShape="RoundRectangle 3" 
-                                      HorizontalOptions="Start" 
-                                      WidthRequest="{Binding SolarUsageProgress, Converter={StaticResource ProgressWidthConverter}, ConverterParameter={Binding Width, Source={x:Reference ProgressContainer}}}">
-                                    <Rectangle Fill="#FFD602" HeightRequest="6"/>
-                                </Border>
+                                <BoxView Color="#EEEEEE" CornerRadius="3" HeightRequest="6"/>
+                                <BoxView Color="{Binding BatteryLevel, Converter={StaticResource BatteryToColorConverter}, ConverterParameter='bar'}" 
+                                       CornerRadius="3" 
+                                       HorizontalOptions="Start" 
+                                       HeightRequest="6"
+                                       WidthRequest="100"/>
                             </Grid>
                         </Grid>
                     </Border>
 
-                    <!-- Energy Metrics Row 1 -->
+                    <!-- Energy Metrics Row 1 - TENSION ET COURANT -->
                     <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="15" HorizontalOptions="Center" Margin="0,15,0,0">
-                        <!-- Total Energy Card -->
+                        <!-- Tension Card -->
                         <Border Grid.Column="0" 
                              Style="{StaticResource MetricCardStyle}">
                             <Grid RowDefinitions="Auto,Auto,*" RowSpacing="10">
@@ -186,17 +178,17 @@
                                      WidthRequest="32"
                                      HorizontalOptions="Start"
                                      Grid.Row="0"/>
-                                <Label Text="Énergie totale" 
+                                <Label Text="Tension" 
                                      TextColor="#666666"
                                      FontSize="16"
                                      Grid.Row="1"
                                      Margin="0,5,0,0"/>
                                 <HorizontalStackLayout Grid.Row="2" VerticalOptions="End" Spacing="5">
-                                    <Label Text="{Binding TotalEnergy, StringFormat='{0:F1}'}" 
+                                    <Label Text="{Binding Voltage, StringFormat='{0:F1}'}" 
                                          TextColor="#333333"
                                          FontSize="36"
                                          FontAttributes="Bold"/>
-                                    <Label Text="KWh" 
+                                    <Label Text="V" 
                                          TextColor="#666666"
                                          FontSize="16"
                                          VerticalOptions="End"
@@ -205,7 +197,7 @@
                             </Grid>
                         </Border>
 
-                        <!-- Used Energy Card -->
+                        <!-- Courant Card -->
                         <Border Grid.Column="1" 
                              Style="{StaticResource MetricCardStyle}">
                             <Grid RowDefinitions="Auto,Auto,*" RowSpacing="10">
@@ -214,17 +206,17 @@
                                      WidthRequest="32"
                                      HorizontalOptions="Start"
                                      Grid.Row="0"/>
-                                <Label Text="Utilisé" 
+                                <Label Text="Courant" 
                                      TextColor="#666666"
                                      FontSize="16"
                                      Grid.Row="1"
                                      Margin="0,5,0,0"/>
                                 <HorizontalStackLayout Grid.Row="2" VerticalOptions="End" Spacing="5">
-                                    <Label Text="{Binding UsedEnergy, StringFormat='{0:F1}'}" 
+                                    <Label Text="{Binding Current, StringFormat='{0:F1}'}" 
                                          TextColor="#333333"
                                          FontSize="36"
                                          FontAttributes="Bold"/>
-                                    <Label Text="KWh" 
+                                    <Label Text="A" 
                                          TextColor="#666666"
                                          FontSize="16"
                                          VerticalOptions="End"
@@ -234,9 +226,9 @@
                         </Border>
                     </Grid>
 
-                    <!-- Energy Metrics Row 2 -->
+                    <!-- Energy Metrics Row 2 - PUISSANCE ET CO2 -->
                     <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="15" HorizontalOptions="Center" Margin="0,15,0,0">
-                        <!-- Capacity Card -->
+                        <!-- Puissance Card -->
                         <Border Grid.Column="0" 
                              Style="{StaticResource MetricCardStyle}">
                             <Grid RowDefinitions="Auto,Auto,*" RowSpacing="10">
@@ -245,17 +237,17 @@
                                      WidthRequest="32"
                                      HorizontalOptions="Start"
                                      Grid.Row="0"/>
-                                <Label Text="Capacité" 
+                                <Label Text="Puissance" 
                                      TextColor="#666666"
                                      FontSize="16"
                                      Grid.Row="1"
                                      Margin="0,5,0,0"/>
                                 <HorizontalStackLayout Grid.Row="2" VerticalOptions="End" Spacing="5">
-                                    <Label Text="{Binding Capacity, StringFormat='{0:F1}'}" 
+                                    <Label Text="{Binding Power, StringFormat='{0:F1}'}" 
                                          TextColor="#333333"
                                          FontSize="36"
                                          FontAttributes="Bold"/>
-                                    <Label Text="KWh" 
+                                    <Label Text="W" 
                                          TextColor="#666666"
                                          FontSize="16"
                                          VerticalOptions="End"
@@ -279,11 +271,11 @@
                                      Grid.Row="1"
                                      Margin="0,5,0,0"/>
                                 <HorizontalStackLayout Grid.Row="2" VerticalOptions="End" Spacing="5">
-                                    <Label Text="{Binding Co2Reduction, StringFormat='{0:F1}'}" 
+                                    <Label Text="{Binding Co2Reduction, StringFormat='{0:F6}'}" 
                                          TextColor="#333333"
                                          FontSize="36"
                                          FontAttributes="Bold"/>
-                                    <Label Text="KWh" 
+                                    <Label Text="g" 
                                          TextColor="#666666"
                                          FontSize="16"
                                          VerticalOptions="End"
@@ -344,7 +336,6 @@
 
                         <!-- Chart View -->
                         <Grid Grid.Row="2" RowDefinitions="Auto,*,Auto" ColumnDefinitions="Auto,*" Margin="0,10,0,0">
-                            <!-- Y-Axis Labels -->
                             <Grid Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" RowDefinitions="1*,1*,1*,1*,1*" VerticalOptions="Fill">
                                 <Label Text="200KWh" TextColor="#999999" FontSize="12" HorizontalOptions="End" Margin="0,0,5,0" Grid.Row="0"/>
                                 <Label Text="150KWh" TextColor="#999999" FontSize="12" HorizontalOptions="End" Margin="0,0,5,0" Grid.Row="1"/>
@@ -353,7 +344,6 @@
                                 <Label Text="0" TextColor="#999999" FontSize="12" HorizontalOptions="End" Margin="0,0,5,0" Grid.Row="4"/>
                             </Grid>
 
-                            <!-- Chart Area -->
                             <Grid Grid.Row="0" Grid.RowSpan="2" Grid.Column="1">
                                 <GraphicsView x:Name="GraphView" 
                                             Drawable="{Binding GraphDrawable}"
@@ -365,7 +355,6 @@
                                 </GraphicsView>
                             </Grid>
 
-                            <!-- Tooltip -->
                             <Border Grid.Row="0" Grid.Column="1"
                                  BackgroundColor="#333333"
                                  StrokeShape="RoundRectangle 8"
@@ -391,7 +380,6 @@
                                 </VerticalStackLayout>
                             </Border>
 
-                            <!-- X-Axis Labels -->
                             <Grid Grid.Row="2" Grid.Column="1" ColumnDefinitions="1*,1*,1*,1*,1*,1*">
                                 <Label Text="13:00" TextColor="#999999" FontSize="12" HorizontalOptions="Start" Grid.Column="0"/>
                                 <Label Text="14:00" TextColor="#999999" FontSize="12" HorizontalOptions="Center" Grid.Column="1"/>
@@ -406,7 +394,7 @@
             </Grid>
         </ScrollView>
 
-        <!-- Bottom Navigation - Structure originale SANS la barre de progression -->
+        <!-- Bottom Navigation -->
         <Border Grid.Row="1" 
              BackgroundColor="White" 
              StrokeShape="RoundRectangle 30,30,0,0"
@@ -416,7 +404,6 @@
              VerticalOptions="End"
              Shadow="{Shadow Brush='#30000000', Offset='0,-5', Radius='15'}">
             <Grid RowDefinitions="Auto,*" ColumnDefinitions="*,*,*,*,*">
-                <!-- Indicateur jaune pour l'onglet actif -->
                 <BoxView Grid.Row="0" Grid.Column="0" 
                        HeightRequest="3" 
                        WidthRequest="40" 
@@ -425,9 +412,6 @@
                        VerticalOptions="Start"
                        Margin="0,0,0,0"/>
 
-                <!-- SUPPRESSION de la barre de progression grise -->
-
-                <!-- Onglet Accueil -->
                 <VerticalStackLayout Grid.Row="1" Grid.Column="0" 
                                    Style="{StaticResource NavItemStyle}"
                                    x:Name="AccueilTab">
@@ -437,7 +421,6 @@
                          Style="{StaticResource NavTextActiveStyle}"/>
                 </VerticalStackLayout>
 
-                <!-- Onglet Statistiques -->
                 <VerticalStackLayout Grid.Row="1" Grid.Column="1" 
                                    Style="{StaticResource NavItemStyle}"
                                    x:Name="StatistiquesTab">
@@ -447,7 +430,6 @@
                          Style="{StaticResource NavTextStyle}"/>
                 </VerticalStackLayout>
 
-                <!-- Onglet Localiser -->
                 <VerticalStackLayout Grid.Row="1" Grid.Column="2" 
                                    Style="{StaticResource NavItemStyle}"
                                    x:Name="LocaliserTab">
@@ -457,7 +439,6 @@
                          Style="{StaticResource NavTextStyle}"/>
                 </VerticalStackLayout>
 
-                <!-- Onglet Code -->
                 <VerticalStackLayout Grid.Row="1" Grid.Column="3" 
                                    Style="{StaticResource NavItemStyle}"
                                    x:Name="CodeTab">
@@ -467,7 +448,6 @@
                          Style="{StaticResource NavTextStyle}"/>
                 </VerticalStackLayout>
 
-                <!-- Onglet Paramètres -->
                 <VerticalStackLayout Grid.Row="1" Grid.Column="4" 
                                    Style="{StaticResource NavItemStyle}"
                                    x:Name="ParametresTab">

@@ -2,6 +2,7 @@
 using Microsoft.Maui;
 using Microsoft.Maui.Controls.Hosting;
 using Microsoft.Maui.Hosting;
+using SOLARY.Services;
 
 namespace SOLARY
 {
@@ -20,6 +21,7 @@ namespace SOLARY
                     fonts.AddFont("Poppins-Semibold.ttf", "PoppinsSemibold");
                     fonts.AddFont("Poppins-Regular.ttf", "PoppinsRegular");
                     fonts.AddFont("Poppins-Medium.ttf", "PoppinsMedium");
+                    fonts.AddFont("Montserrat-Medium.ttf", "MontserratMedium");
                 });
 
             // Ajouter cette configuration dans la méthode CreateMauiApp() après la ligne builder.UseMauiApp<App>()

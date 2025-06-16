@@ -2,6 +2,7 @@ using Microsoft.Maui.Controls;
 using Microsoft.Maui.Graphics;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 using SOLARY.ViewModels;
 
@@ -9,73 +10,188 @@ namespace SOLARY.Views
 {
     public partial class HomePage : ContentPage
     {
-        private int currentDataPointIndex = 5; // Position initiale du tooltip (Feb 22)
+        private int currentDataPointIndex = 5;
         private float tooltipXPosition;
         private bool isPointerTracking = false;
+        private Random random = new Random();
+        private System.Timers.Timer? usageUpdateTimer = null;
+        private BoxView? progressBar;
+        private Label? percentLabel;
+        private GraphicsView? circularProgressView;
+        private Image? electricityIcon;
+        private HomeViewModel? viewModel;
 
         public HomePage()
         {
             InitializeComponent();
+            InitializeViewModel();
+        }
 
-            // Si vous n'avez pas encore créé le GraphDrawable dans le ViewModel
-            if (BindingContext is HomeViewModel viewModel)
+        private void InitializeViewModel()
+        {
+            // Essayer de récupérer le ViewModel depuis l'injection de dépendances
+            try
             {
-                viewModel.UserName = "Charlie";
-                viewModel.TodayDate = DateTime.Now.ToString("dd/MM/yyyy");
-                viewModel.CurrentKwh = 30.276;
-                viewModel.SolarUsagePercent = 40;
-                viewModel.SolarUsageProgress = 0.4;
-                viewModel.TotalEnergy = 36.2;
-                viewModel.UsedEnergy = 28.2;
-                viewModel.Capacity = 42.0;
-                viewModel.Co2Reduction = 28.2;
-                viewModel.PanelGenerated = 140.65;
-                viewModel.IsDirectMode = true;
-
-                // Initialiser le graphique avec les données réelles
-                InitializeGraph();
+                viewModel = Handler?.MauiContext?.Services.GetService<HomeViewModel>();
+            }
+            catch
+            {
+                // Fallback si l'injection ne fonctionne pas
+                viewModel = null;
             }
 
-            // Ajouter des gestionnaires d'événements pour le mouvement de la souris
-            if (GraphView != null)
+            // Si pas de ViewModel injecté, créer une instance par défaut
+            if (viewModel == null)
             {
-                GraphView.StartInteraction += OnGraphStartInteraction;
-                GraphView.DragInteraction += OnGraphDragInteraction;
-                GraphView.EndInteraction += OnGraphEndInteraction;
+                viewModel = new HomeViewModel();
             }
 
-            // Ajouter un gestionnaire pour le mouvement du pointeur
-#if WINDOWS
-            Microsoft.Maui.Controls.Application.Current?.Dispatcher.Dispatch(() => {
-                var nativeView = GraphView?.Handler?.PlatformView as Microsoft.UI.Xaml.FrameworkElement;
-                if (nativeView != null)
-                {
-                    nativeView.PointerMoved += (s, e) => {
-                        if (isPointerTracking)
-                        {
-                            var point = e.GetCurrentPoint(nativeView);
-                            UpdateTooltipPosition((float)point.Position.X);
-                        }
-                    };
-                    
-                    nativeView.PointerEntered += (s, e) => {
-                        isPointerTracking = true;
-                    };
-                    
-                    nativeView.PointerExited += (s, e) => {
-                        isPointerTracking = false;
-                    };
-                }
-            });
-#endif
+            BindingContext = viewModel;
+            InitializeUI();
+        }
 
-            // Ajouter les gestionnaires d'événements pour la navigation
+        private void InitializeUI()
+        {
+            if (viewModel == null) return;
+
+            // Initialiser les valeurs par défaut
+            viewModel.CurrentKwh = 30.276;
+            viewModel.BatteryLevel = 82; // Valeur réelle de la BDD (pas de simulation)
+            viewModel.Voltage = 5.0;     // Valeur constante borne_id = 1
+            viewModel.Current = 1.4;     // Valeur variable borne_id = 1  
+            viewModel.Power = 7.0;       // Valeur variable borne_id = 1
+            viewModel.TotalEnergy = 36.2;
+            viewModel.UsedEnergy = 28.2;
+            viewModel.Capacity = 42.0;
+            viewModel.Co2Reduction = 28.2;
+            viewModel.PanelGenerated = 140.65;
+            viewModel.IsDirectMode = true;
+
+            // Trouver les éléments UI
+            circularProgressView = this.FindByName<GraphicsView>("CircularProgressView");
+            electricityIcon = this.FindByName<Image>("ElectricityIcon");
+            percentLabel = this.FindByName<Label>("PercentLabel");
+
+            // Initialiser le graphique
+            InitializeGraph();
+
+            // Configurer la simulation d'utilisation
+            SetupUsageSimulation();
+
+            // Trouver la barre de progression
+            var progressContainer = this.FindByName<Grid>("ProgressContainer");
+            if (progressContainer != null)
+            {
+                progressBar = progressContainer.Children.OfType<BoxView>().ElementAtOrDefault(1);
+                UpdateProgressBarWidth(viewModel.BatteryProgress);
+
+                progressContainer.SizeChanged += (s, e) => {
+                    UpdateProgressBarWidth(viewModel.BatteryProgress);
+                };
+            }
+
+            // Mettre à jour les couleurs initiales
+            UpdateProgressColors(viewModel.BatteryLevel);
+
+            // Ajouter des gestionnaires d'événements pour le graphique
+            var graphView = this.FindByName<GraphicsView>("GraphView");
+            if (graphView != null)
+            {
+                graphView.StartInteraction += OnGraphStartInteraction;
+                graphView.DragInteraction += OnGraphDragInteraction;
+                graphView.EndInteraction += OnGraphEndInteraction;
+            }
+
+            // Setup navigation
             SetupNavigation();
+
+            // S'abonner aux changements du ViewModel
+            viewModel.PropertyChanged += (s, e) => {
+                if (e.PropertyName == nameof(HomeViewModel.BatteryLevel))
+                {
+                    UpdateProgressColors(viewModel.BatteryLevel);
+                    UpdateProgressBarWidth(viewModel.BatteryProgress);
+                }
+            };
+        }
+
+        private void UpdateProgressBarWidth(double progress)
+        {
+            var progressContainer = this.FindByName<Grid>("ProgressContainer");
+            if (progressContainer != null && progressBar != null)
+            {
+                double containerWidth = progressContainer.Width;
+                if (containerWidth > 0)
+                {
+                    progressBar.WidthRequest = containerWidth * progress;
+                }
+            }
+        }
+
+        private void SetupUsageSimulation()
+        {
+            // SUPPRIMER la simulation aléatoire - utiliser les vraies données BDD
+            usageUpdateTimer = new System.Timers.Timer(10000); // 10 secondes
+            usageUpdateTimer.Elapsed += async (s, e) =>
+            {
+                // Recharger les données depuis la BDD au lieu de simuler
+                if (viewModel != null)
+                {
+                    await viewModel.LoadLatestMeasureData(); // Méthode à rendre publique
+
+                    Microsoft.Maui.Controls.Application.Current?.Dispatcher.Dispatch(() =>
+                    {
+                        // Mettre à jour l'UI avec les vraies données
+                        UpdateProgressColors(viewModel.BatteryLevel);
+                        UpdateProgressBarWidth(viewModel.BatteryProgress);
+
+                        if (circularProgressView != null)
+                        {
+                            circularProgressView.Invalidate();
+                        }
+                    });
+                }
+            };
+            usageUpdateTimer.Start();
+        }
+
+        private void UpdateProgressColors(int batteryLevel)
+        {
+            bool isLowBattery = batteryLevel < 30;
+            Color progressColor = isLowBattery ? Colors.Red : Color.FromArgb("#FFD602");
+
+            if (progressBar != null)
+            {
+                progressBar.Color = progressColor;
+            }
+
+            if (percentLabel != null)
+            {
+                percentLabel.TextColor = progressColor;
+            }
+
+            if (circularProgressView != null && circularProgressView.Drawable is CircularProgressDrawable circularDrawable)
+            {
+                circularDrawable.ProgressColor = progressColor;
+                circularProgressView.Invalidate();
+            }
+
+            if (electricityIcon != null)
+            {
+                electricityIcon.Source = isLowBattery ? "icon_electricity_red.png" : "icon_electricity_yellow.png";
+            }
+        }
+
+        protected override void OnDisappearing()
+        {
+            base.OnDisappearing();
+            usageUpdateTimer?.Stop();
+            usageUpdateTimer?.Dispose();
+            viewModel?.Dispose();
         }
 
         private void SetupNavigation()
         {
-            // Gestionnaire pour l'onglet Localiser
             var locateTab = this.FindByName<VerticalStackLayout>("LocaliserTab");
             if (locateTab != null)
             {
@@ -86,7 +202,6 @@ namespace SOLARY.Views
                 locateTab.GestureRecognizers.Add(tapGesture);
             }
 
-            // Gestionnaire pour l'onglet Statistiques
             var statsTab = this.FindByName<VerticalStackLayout>("StatistiquesTab");
             if (statsTab != null)
             {
@@ -97,7 +212,6 @@ namespace SOLARY.Views
                 statsTab.GestureRecognizers.Add(tapGesture);
             }
 
-            // Gestionnaire pour l'onglet Code (remplace Scan)
             var codeTab = this.FindByName<VerticalStackLayout>("CodeTab");
             if (codeTab != null)
             {
@@ -108,7 +222,6 @@ namespace SOLARY.Views
                 codeTab.GestureRecognizers.Add(tapGesture);
             }
 
-            // Gestionnaire pour l'onglet Paramètres
             var settingsTab = this.FindByName<VerticalStackLayout>("ParametresTab");
             if (settingsTab != null)
             {
@@ -122,16 +235,23 @@ namespace SOLARY.Views
 
         private void InitializeGraph()
         {
-            if (BindingContext is HomeViewModel viewModel)
-            {
-                viewModel.GraphDrawable = new EnhancedGraphDrawable();
+            if (viewModel == null) return;
 
-                // Positionner le tooltip et la ligne verticale initialement
-                Dispatcher.DispatchDelayed(TimeSpan.FromMilliseconds(300), () =>
-                {
-                    PositionTooltipAndLine(currentDataPointIndex);
-                });
+            viewModel.GraphDrawable = new EnhancedGraphDrawable();
+
+            if (circularProgressView != null)
+            {
+                var circularDrawable = new CircularProgressDrawable(viewModel.BatteryProgress);
+                bool isLowBattery = viewModel.BatteryLevel < 30;
+                circularDrawable.ProgressColor = isLowBattery ? Colors.Red : Color.FromArgb("#FFD602");
+                circularProgressView.Drawable = circularDrawable;
+                circularProgressView.Invalidate();
             }
+
+            Dispatcher.DispatchDelayed(TimeSpan.FromMilliseconds(300), () =>
+            {
+                PositionTooltipAndLine(currentDataPointIndex);
+            });
         }
 
         private void PositionTooltipAndLine(int dataPointIndex)
@@ -142,25 +262,21 @@ namespace SOLARY.Views
             var graphWidth = graphView.Width;
             if (graphWidth <= 0) return;
 
-            // Calculer la position X en fonction de l'index
             float pointSpacing = (float)(graphWidth / (EnhancedGraphDrawable.DataPoints.Length - 1));
             tooltipXPosition = dataPointIndex * pointSpacing;
 
-            // Mettre à jour la position de la ligne verticale dans le GraphDrawable
-            if (BindingContext is HomeViewModel viewModel && viewModel.GraphDrawable is EnhancedGraphDrawable graphDrawable)
+            if (viewModel?.GraphDrawable is EnhancedGraphDrawable graphDrawable)
             {
                 graphDrawable.CurrentTooltipIndex = dataPointIndex;
-                graphView.Invalidate(); // Redessiner le graphique
+                graphView.Invalidate();
             }
 
-            // Positionner le tooltip
             var tooltipFrame = this.FindByName<Border>("TooltipFrame");
             if (tooltipFrame != null)
             {
                 tooltipFrame.TranslationX = tooltipXPosition - (tooltipFrame.Width / 2);
             }
 
-            // Mettre à jour le contenu du tooltip
             UpdateTooltip(dataPointIndex);
         }
 
@@ -169,18 +285,16 @@ namespace SOLARY.Views
             if (dataPointIndex < 0 || dataPointIndex >= EnhancedGraphDrawable.DataPoints.Length)
                 return;
 
-            // Mettre à jour le texte du tooltip
             string[] dates = { "13:00", "13:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00", "17:30", "18:00", "18:30", "19:00", "19:30" };
             string date = dataPointIndex < dates.Length ? dates[dataPointIndex] : "Feb, 22";
 
-            // Calculer une valeur plus réaliste basée sur la position dans le graphique
-            int value = (int)(EnhancedGraphDrawable.DataPoints[dataPointIndex] * 200); // Valeur max 200KWh
+            int value = (int)(EnhancedGraphDrawable.DataPoints[dataPointIndex] * 200);
 
             var tooltipDate = this.FindByName<Label>("TooltipDate");
             var tooltipValue = this.FindByName<Label>("TooltipValue");
 
             if (tooltipDate != null)
-                tooltipDate.Text = "Feb, 22";
+                tooltipDate.Text = date;
 
             if (tooltipValue != null)
                 tooltipValue.Text = $"{value}kwh";
@@ -191,7 +305,6 @@ namespace SOLARY.Views
             switch (e.StatusType)
             {
                 case GestureStatus.Running:
-                    // Calculer le nouvel index en fonction du déplacement
                     var graphView = this.FindByName<GraphicsView>("GraphView");
                     if (graphView == null) return;
 
@@ -201,10 +314,8 @@ namespace SOLARY.Views
                     float pointSpacing = (float)(graphWidth / (EnhancedGraphDrawable.DataPoints.Length - 1));
                     float newPosition = tooltipXPosition + (float)e.TotalX;
 
-                    // Limiter la position dans les bornes du graphique
                     newPosition = Math.Clamp(newPosition, 0, (float)graphWidth);
 
-                    // Calculer l'index le plus proche
                     int newIndex = (int)Math.Round(newPosition / pointSpacing);
                     newIndex = Math.Clamp(newIndex, 0, EnhancedGraphDrawable.DataPoints.Length - 1);
 
@@ -219,7 +330,6 @@ namespace SOLARY.Views
 
         private void OnGraphTapped(object? sender, TappedEventArgs e)
         {
-            // Calculer l'index en fonction de la position du tap
             var graphView = this.FindByName<GraphicsView>("GraphView");
             if (graphView == null) return;
 
@@ -237,7 +347,6 @@ namespace SOLARY.Views
             PositionTooltipAndLine(currentDataPointIndex);
         }
 
-        // Méthodes pour gérer le mouvement de la souris sur le graphique
         private void OnGraphStartInteraction(object? sender, TouchEventArgs e)
         {
             if (e.Touches?.Length > 0)
@@ -278,46 +387,47 @@ namespace SOLARY.Views
                 PositionTooltipAndLine(currentDataPointIndex);
             }
         }
+    }
 
-        private void OnSwitchToMainToggled(object? sender, ToggledEventArgs e)
+    // Classes pour le dessin (inchangées)
+    public class CircularProgressDrawable : IDrawable
+    {
+        public double Progress { get; set; }
+        public Color ProgressColor { get; set; } = Color.FromArgb("#FFD602");
+        public Color BackgroundColor { get; set; } = Color.FromArgb("#E5E5E5");
+
+        public CircularProgressDrawable(double progress)
         {
-            // Logique pour switcher sur le "main electricity"
-            if (e.Value)
-            {
-                // Activé
-                DisplayAlert("Switch", "Vous avez activé l'électricité du réseau.", "OK");
-            }
-            else
-            {
-                // Désactivé
-                DisplayAlert("Switch", "Vous avez désactivé l'électricité du réseau.", "OK");
-            }
+            Progress = Math.Clamp(progress, 0, 1);
         }
 
-        private void OnDirectClicked(object? sender, EventArgs e)
+        public void Draw(ICanvas canvas, RectF dirtyRect)
         {
-            if (BindingContext is HomeViewModel vm)
-                vm.IsDirectMode = true;
-        }
+            float width = dirtyRect.Width;
+            float height = dirtyRect.Height;
+            float size = Math.Min(width, height);
 
-        private void OnIndirectClicked(object? sender, EventArgs e)
-        {
-            if (BindingContext is HomeViewModel vm)
-                vm.IsDirectMode = false;
+            float centerX = width / 2f;
+            float centerY = height / 2f;
+            float radius = (size / 2f) - 3f;
+            float strokeWidth = 2.5f;
+
+            if (radius <= 0) return;
+
+            canvas.StrokeSize = strokeWidth;
+            canvas.StrokeDashPattern = null;
+            canvas.StrokeColor = BackgroundColor;
+            canvas.DrawCircle(centerX, centerY, radius);
         }
     }
 
-    // Classe améliorée pour dessiner le graphique
     public class EnhancedGraphDrawable : IDrawable
     {
-        // Données du graphique qui correspondent à l'image
-        // Ces valeurs sont ajustées pour correspondre au graphique de l'image
         public static readonly float[] DataPoints = new float[]
         {
             0.35f, 0.45f, 0.65f, 0.75f, 0.85f, 0.60f, 0.45f, 0.40f, 0.50f, 0.60f, 0.45f, 0.55f, 0.40f, 0.60f
         };
 
-        // Index actuel pour le tooltip
         public int CurrentTooltipIndex { get; set; } = 5;
 
         public void Draw(ICanvas canvas, RectF dirtyRect)
@@ -325,33 +435,25 @@ namespace SOLARY.Views
             float height = dirtyRect.Height;
             float width = dirtyRect.Width;
 
-            // Dessiner les lignes horizontales pointillées
             canvas.StrokeColor = Color.FromArgb("#DDDDDD");
             canvas.StrokeSize = 1;
             canvas.StrokeDashPattern = new float[] { 4, 4 };
 
-            // Dessiner plus de lignes horizontales pour une meilleure lecture
             for (int i = 0; i <= 8; i++)
             {
                 float y = (i * height / 8);
                 canvas.DrawLine(0, y, width, y);
             }
 
-            // Dessiner le graphique avec un jaune uniforme
             if (DataPoints.Length > 1)
             {
-                // Créer le chemin pour la zone sous la courbe
                 var path = new PathF();
-
-                // Commencer en bas à gauche
                 path.MoveTo(0, height);
 
-                // Ajouter le premier point
                 float x = 0;
                 float y = height - (DataPoints[0] * height);
                 path.LineTo(x, y);
 
-                // Ajouter le reste des points
                 float pointSpacing = width / (DataPoints.Length - 1);
                 for (int i = 1; i < DataPoints.Length; i++)
                 {
@@ -360,20 +462,16 @@ namespace SOLARY.Views
                     path.LineTo(x, y);
                 }
 
-                // Compléter le chemin vers le bas à droite puis vers le bas à gauche
                 path.LineTo(width, height);
                 path.LineTo(0, height);
 
-                // Utiliser une couleur jaune uniforme comme dans l'image
                 canvas.FillColor = Color.FromArgb("#FFD602");
                 canvas.FillPath(path);
 
-                // Dessiner la ligne du graphique en jaune légèrement plus foncé
                 canvas.StrokeColor = Color.FromArgb("#FFD602");
                 canvas.StrokeSize = 2;
-                canvas.StrokeDashPattern = null; // Ligne continue pour le contour
+                canvas.StrokeDashPattern = null;
 
-                // Créer un chemin pour la ligne du graphique (sans la partie qui ferme le chemin)
                 var linePath = new PathF();
                 linePath.MoveTo(0, height - (DataPoints[0] * height));
                 for (int i = 1; i < DataPoints.Length; i++)
@@ -384,19 +482,16 @@ namespace SOLARY.Views
                 }
                 canvas.DrawPath(linePath);
 
-                // Dessiner les lignes verticales pointillées pour chaque point de données
                 canvas.StrokeColor = Color.FromArgb("#DDDDDD");
                 canvas.StrokeSize = 1;
                 canvas.StrokeDashPattern = new float[] { 4, 4 };
 
-                // Dessiner plus de lignes verticales pour une meilleure lecture
                 for (int i = 0; i <= DataPoints.Length; i++)
                 {
                     float lineX = i * pointSpacing;
                     canvas.DrawLine(lineX, 0, lineX, height);
                 }
 
-                // Dessiner la ligne verticale pointillée pour le tooltip (en plus foncé)
                 if (CurrentTooltipIndex < DataPoints.Length)
                 {
                     float tooltipX = CurrentTooltipIndex * pointSpacing;
@@ -404,7 +499,6 @@ namespace SOLARY.Views
                     canvas.StrokeSize = 1.5f;
                     canvas.DrawLine(tooltipX, 0, tooltipX, height);
 
-                    // Dessiner un point noir à la position du tooltip
                     float tooltipY = height - (DataPoints[CurrentTooltipIndex] * height);
                     canvas.FillColor = Colors.Black;
                     canvas.FillCircle(tooltipX, tooltipY, 4);

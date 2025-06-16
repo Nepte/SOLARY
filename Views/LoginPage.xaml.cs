@@ -1,30 +1,36 @@
-using SOLARY.ViewModels;
+Ôªøusing SOLARY.ViewModels;
 
 namespace SOLARY.Views;
 
 public partial class LoginPage : ContentPage
 {
+    private LoginViewModel _viewModel;
+
     public LoginPage()
     {
         InitializeComponent();
-        BindingContext = new LoginViewModel();
+        _viewModel = new LoginViewModel();
+        BindingContext = _viewModel;
     }
 
-    protected override void OnAppearing()
+    protected override async void OnAppearing()
     {
         base.OnAppearing();
         ConfigureStatusBar();
+
+        // ‚ú® NOUVEAU: Initialiser la v√©rification auto-login
+        await _viewModel.InitializeAsync();
     }
 
     private void ConfigureStatusBar()
     {
         try
         {
-            // Pour iOS - configuration supplÈmentaire si nÈcessaire
+            // Pour iOS - configuration suppl√©mentaire si n√©cessaire
             if (DeviceInfo.Platform == DevicePlatform.iOS)
             {
 #if IOS
-                // La configuration est dÈj‡ dans Info.plist, mais on peut forcer ici si nÈcessaire
+                // La configuration est d√©j√† dans Info.plist, mais on peut forcer ici si n√©cessaire
                 var viewController = Microsoft.Maui.ApplicationModel.Platform.GetCurrentUIViewController();
                 if (viewController != null)
                 {

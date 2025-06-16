@@ -1,4 +1,4 @@
-using Microsoft.Maui.Controls;
+ï»¿using Microsoft.Maui.Controls;
 using Microsoft.Maui.Graphics;
 using System;
 using System.Collections.Generic;
@@ -12,6 +12,8 @@ namespace SOLARY.Views
     {
         private readonly List<string> _images = new() { "empreinte_carbone.png", "test.png", "chat.png" };
         private int _currentIndex = 0;
+        private bool _isNavigating = false;
+        private bool _hasCheckedAutoLogin = false; // âœ¨ Flag pour Ã©viter les vÃ©rifications multiples
 
         public ICommand NavigateToLoginCommand { get; }
 
@@ -19,21 +21,139 @@ namespace SOLARY.Views
         {
             InitializeComponent();
 
-            // Masquer la barre de statut violette
-            MakeStatusBarTransparent();
+            // Masquer complÃ¨tement la barre de statut
+            ConfigureFullScreen();
 
             // Initialiser la commande
             NavigateToLoginCommand = new Command(async () => await NavigateToLoginPage());
-            BindingContext = this; // Définir le contexte de binding
+            BindingContext = this;
 
-            // Adapter les tailles en fonction de l'écran
+            // Adapter les tailles en fonction de l'Ã©cran
             AdaptToScreenSize();
 
             SetupImageContainer();
             StartImageRotationAsync();
         }
 
-        private void MakeStatusBarTransparent()
+        protected override async void OnAppearing()
+        {
+            base.OnAppearing();
+
+            // Forcer le plein Ã©cran Ã  chaque apparition
+            ConfigureFullScreen();
+
+            // RÃ©initialiser le flag de navigation
+            _isNavigating = false;
+
+            // âœ¨ NOUVEAU: VÃ©rifier l'auto-login dÃ¨s l'apparition de WelcomePage
+            if (!_hasCheckedAutoLogin)
+            {
+                _hasCheckedAutoLogin = true;
+                await CheckAutoLoginAndSkip();
+            }
+        }
+
+        // âœ¨ NOUVEAU: VÃ©rifier l'auto-login et skip WelcomePage si nÃ©cessaire
+        private async Task CheckAutoLoginAndSkip()
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine("[DEBUG] WelcomePage: VÃ©rification auto-login...");
+
+                // VÃ©rifier si l'utilisateur a une session "Se souvenir de moi"
+                var savedSession = await SecureStorage.GetAsync("RememberMeSession");
+
+                // âœ… CORRIGÃ‰: VÃ©rifier que la session n'est pas vide ou null
+                if (!string.IsNullOrEmpty(savedSession) && savedSession.Trim() != "")
+                {
+                    System.Diagnostics.Debug.WriteLine("[DEBUG] WelcomePage: Session trouvÃ©e, parsing...");
+
+                    var sessionParts = savedSession.Split('|');
+                    if (sessionParts.Length >= 3)
+                    {
+                        var userId = sessionParts[0];
+                        var email = sessionParts[1];
+
+                        // âœ… CORRIGÃ‰: VÃ©rifier que les donnÃ©es ne sont pas vides
+                        if (!string.IsNullOrEmpty(userId) && !string.IsNullOrEmpty(email))
+                        {
+                            var expirationDate = DateTime.Parse(sessionParts[2]);
+
+                            // VÃ©rifier si la session n'a pas expirÃ©
+                            if (DateTime.Now < expirationDate)
+                            {
+                                System.Diagnostics.Debug.WriteLine($"[DEBUG] WelcomePage: Session valide pour {email}, skip vers HomePage...");
+
+                                // Restaurer la session
+                                SOLARY.Services.SessionService.SaveUserSession(int.Parse(userId), email);
+
+                                // âœ¨ SKIP directement vers HomePage depuis WelcomePage
+                                await SkipToHomePage();
+                                return;
+                            }
+                            else
+                            {
+                                System.Diagnostics.Debug.WriteLine("[DEBUG] WelcomePage: Session expirÃ©e, suppression...");
+                                SecureStorage.Remove("RememberMeSession");
+                            }
+                        }
+                        else
+                        {
+                            System.Diagnostics.Debug.WriteLine("[DEBUG] WelcomePage: DonnÃ©es de session invalides, suppression...");
+                            SecureStorage.Remove("RememberMeSession");
+                        }
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine("[DEBUG] WelcomePage: Format de session invalide, suppression...");
+                        SecureStorage.Remove("RememberMeSession");
+                    }
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("[DEBUG] WelcomePage: Pas de session RememberMe trouvÃ©e");
+                }
+
+                System.Diagnostics.Debug.WriteLine("[DEBUG] WelcomePage: Pas de session valide, affichage normal");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[DEBUG] WelcomePage: Erreur auto-login: {ex.Message}");
+                // En cas d'erreur, supprimer la session corrompue
+                try
+                {
+                    SecureStorage.Remove("RememberMeSession");
+                }
+                catch { }
+            }
+        }
+
+        // âœ¨ NOUVEAU: Skip directement vers HomePage
+        private async Task SkipToHomePage()
+        {
+            if (_isNavigating) return;
+
+            try
+            {
+                _isNavigating = true;
+                System.Diagnostics.Debug.WriteLine("[DEBUG] WelcomePage: Navigation directe vers HomePage...");
+
+                await MainThread.InvokeOnMainThreadAsync(async () =>
+                {
+                    await Navigation.PushAsync(new HomePage());
+                });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ERREUR] WelcomePage: Erreur navigation HomePage: {ex.Message}");
+            }
+            finally
+            {
+                _isNavigating = false;
+            }
+        }
+
+        private void ConfigureFullScreen()
         {
             try
             {
@@ -44,19 +164,17 @@ namespace SOLARY.Views
                     var activity = Microsoft.Maui.ApplicationModel.Platform.CurrentActivity;
                     if (activity?.Window != null)
                     {
-                        // Rendre la barre d'état transparente
+                        // Rendre la barre d'Ã©tat transparente
                         activity.Window.SetStatusBarColor(Android.Graphics.Color.Transparent);
                         
-                        // Vérifier la version d'Android
-                        if (OperatingSystem.IsAndroidVersionAtLeast(30)) // Android 11 (API 30) ou supérieur
+                        // Configuration moderne pour Android 11+
+                        if (OperatingSystem.IsAndroidVersionAtLeast(30))
                         {
-                            // Utiliser la réflexion pour accéder à WindowInsetsController
-                            ConfigureModernStatusBarWithReflection(activity);
+                            ConfigureModernFullScreen(activity);
                         }
                         else
                         {
-                            // Pour les versions antérieures à Android 11, utiliser l'ancienne API
-                            ConfigureLegacyStatusBar(activity);
+                            ConfigureLegacyFullScreen(activity);
                         }
                     }
 #endif
@@ -65,61 +183,44 @@ namespace SOLARY.Views
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Erreur lors de la configuration de la barre de statut: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Erreur lors de la configuration plein Ã©cran: {ex.Message}");
             }
         }
 
 #if ANDROID
-        private static void ConfigureModernStatusBarWithReflection(Android.App.Activity activity)
+        private static void ConfigureModernFullScreen(Android.App.Activity activity)
         {
             try
             {
                 var window = activity.Window;
                 if (window != null)
                 {
-                    // Utiliser la réflexion pour accéder à WindowInsetsController
+                    // Utiliser la rÃ©flexion pour WindowInsetsController
                     var insetsControllerProperty = window.GetType().GetProperty("InsetsController");
                     if (insetsControllerProperty != null)
                     {
                         var insetsController = insetsControllerProperty.GetValue(window);
                         if (insetsController != null)
                         {
-                            // Obtenir les types nécessaires par réflexion
                             var insetsControllerType = insetsController.GetType();
                             
-                            // Méthode Hide - masquer la barre d'état
+                            // Masquer la barre d'Ã©tat
                             var hideMethod = insetsControllerType.GetMethod("Hide");
                             if (hideMethod != null)
                             {
-                                // Obtenir la valeur pour StatusBars (généralement 1)
-                                var windowInsetsType = Type.GetType("Android.Views.WindowInsets+Type, Mono.Android");
-                                if (windowInsetsType != null)
-                                {
-                                    var statusBarsField = windowInsetsType.GetMethod("StatusBars");
-                                    if (statusBarsField != null)
-                                    {
-                                        var statusBarsValue = statusBarsField.Invoke(null, null);
-                                        hideMethod.Invoke(insetsController, new object[] { statusBarsValue });
-                                    }
-                                    else
-                                    {
-                                        // Fallback avec la valeur numérique
-                                        hideMethod.Invoke(insetsController, new object[] { 1 });
-                                    }
-                                }
+                                hideMethod.Invoke(insetsController, new object[] { 1 }); // 1 = StatusBars
                             }
                             
-                            // Définir le comportement
+                            // DÃ©finir le comportement
                             var setBehaviorProperty = insetsControllerType.GetProperty("SystemBarsBehavior");
                             if (setBehaviorProperty != null)
                             {
-                                // Valeur 1 correspond à BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-                                setBehaviorProperty.SetValue(insetsController, 1);
+                                setBehaviorProperty.SetValue(insetsController, 1); // BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
                             }
                         }
                     }
                     
-                    // SetDecorFitsSystemWindows avec réflexion
+                    // SetDecorFitsSystemWindows
                     var setDecorFitsMethod = window.GetType().GetMethod("SetDecorFitsSystemWindows");
                     if (setDecorFitsMethod != null)
                     {
@@ -129,29 +230,29 @@ namespace SOLARY.Views
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Erreur avec la réflexion WindowInsetsController: {ex.Message}");
-                // Fallback vers l'ancienne API en cas d'erreur
-                ConfigureLegacyStatusBar(activity);
+                System.Diagnostics.Debug.WriteLine($"Erreur avec WindowInsetsController: {ex.Message}");
+                ConfigureLegacyFullScreen(activity);
             }
         }
 
-        private static void ConfigureLegacyStatusBar(Android.App.Activity activity)
+        private static void ConfigureLegacyFullScreen(Android.App.Activity activity)
         {
             try
             {
                 var window = activity.Window;
                 if (window?.DecorView != null)
                 {
-                    // Pour toutes les versions, utiliser l'ancienne API avec suppression d'avertissement
 #pragma warning disable CA1422 // Validate platform compatibility
 #pragma warning disable CS0618 // Type or member is obsolete
                     window.DecorView.SystemUiFlags = (Android.Views.SystemUiFlags)(
                         Android.Views.SystemUiFlags.LayoutFullscreen | 
                         Android.Views.SystemUiFlags.LayoutStable |
                         Android.Views.SystemUiFlags.Fullscreen |
-                        Android.Views.SystemUiFlags.ImmersiveSticky);
-#pragma warning restore CS0618 // Type or member is obsolete
-#pragma warning restore CA1422 // Validate platform compatibility
+                        Android.Views.SystemUiFlags.ImmersiveSticky |
+                        Android.Views.SystemUiFlags.HideNavigation |
+                        Android.Views.SystemUiFlags.LayoutHideNavigation);
+#pragma warning restore CS0618
+#pragma warning restore CA1422
                 }
             }
             catch (Exception ex)
@@ -165,14 +266,16 @@ namespace SOLARY.Views
         {
             try
             {
-                // Obtenir les dimensions de l'écran
+                // Obtenir les dimensions de l'Ã©cran
                 var screenWidth = DeviceDisplay.MainDisplayInfo.Width / DeviceDisplay.MainDisplayInfo.Density;
                 var screenHeight = DeviceDisplay.MainDisplayInfo.Height / DeviceDisplay.MainDisplayInfo.Density;
 
-                // Adapter les tailles en fonction de la taille de l'écran
-                if (screenWidth < 360) // Petit écran
+                System.Diagnostics.Debug.WriteLine($"Taille Ã©cran: {screenWidth}x{screenHeight}");
+
+                // Adapter les tailles en fonction de la taille de l'Ã©cran
+                if (screenWidth < 360) // Petit Ã©cran
                 {
-                    // Réduire les tailles de police
+                    // RÃ©duire les tailles de police
                     MainThread.BeginInvokeOnMainThread(() =>
                     {
                         foreach (var label in this.GetVisualTreeDescendants().OfType<Label>())
@@ -183,7 +286,7 @@ namespace SOLARY.Views
                                 label.FontSize = 14;
                         }
 
-                        // Réduire la taille des barres de progression
+                        // RÃ©duire la taille des barres de progression
                         var bar1 = this.FindByName<BoxView>("Bar1");
                         var bar2 = this.FindByName<BoxView>("Bar2");
                         var bar3 = this.FindByName<BoxView>("Bar3");
@@ -198,20 +301,35 @@ namespace SOLARY.Views
                 var imageContainer = this.FindByName<Border>("ImageContainer");
                 if (imageContainer != null)
                 {
-                    var maxSize = Math.Min(350, screenWidth * 0.8);
+                    var maxSize = Math.Min(300, screenWidth * 0.7); // RÃ©duire la taille max
                     imageContainer.WidthRequest = maxSize;
                     imageContainer.HeightRequest = maxSize;
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Erreur lors de l'adaptation à la taille de l'écran: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Erreur lors de l'adaptation Ã  la taille de l'Ã©cran: {ex.Message}");
             }
         }
 
         private async Task NavigateToLoginPage()
         {
-            await Navigation.PushAsync(new LoginPage());
+            if (_isNavigating) return;
+
+            try
+            {
+                _isNavigating = true;
+                System.Diagnostics.Debug.WriteLine("[DEBUG] Navigation vers LoginPage...");
+                await Navigation.PushAsync(new LoginPage());
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ERREUR] Erreur lors de la navigation: {ex.Message}");
+            }
+            finally
+            {
+                _isNavigating = false;
+            }
         }
 
         private void SetupImageContainer()
@@ -219,14 +337,18 @@ namespace SOLARY.Views
             var imageContainer = this.FindByName<Grid>("ImageContainer");
             if (imageContainer != null)
             {
-                imageContainer.Children.Add(new Image
+                // CrÃ©er l'image avec des dimensions fixes pour Ã©viter les erreurs Glide
+                var image = new Image
                 {
                     Source = _images[_currentIndex],
                     Aspect = Aspect.AspectFit,
                     VerticalOptions = LayoutOptions.Center,
-                    HorizontalOptions = LayoutOptions.Center
-                });
+                    HorizontalOptions = LayoutOptions.Center,
+                    WidthRequest = 250, // Taille fixe
+                    HeightRequest = 250 // Taille fixe
+                };
 
+                imageContainer.Children.Add(image);
                 UpdateProgressBars(_currentIndex);
             }
         }
@@ -250,13 +372,16 @@ namespace SOLARY.Views
                 var currentImage = imageContainer.Children.FirstOrDefault() as VisualElement;
                 if (currentImage != null)
                 {
+                    // CrÃ©er la nouvelle image avec des dimensions fixes
                     var nextImage = new Image
                     {
                         Source = nextImageSource,
                         Aspect = Aspect.AspectFit,
                         Opacity = 0,
                         VerticalOptions = LayoutOptions.Center,
-                        HorizontalOptions = LayoutOptions.Center
+                        HorizontalOptions = LayoutOptions.Center,
+                        WidthRequest = 250, // Taille fixe
+                        HeightRequest = 250 // Taille fixe
                     };
 
                     imageContainer.Children.Add(nextImage);

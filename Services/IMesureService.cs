@@ -10,6 +10,7 @@ namespace SOLARY.Services
         Task<MesureEnergie?> GetMesureEnergieAsync(int id);
         Task<List<MesureEnergie>> GetMesuresForBorneAsync(int borneId);
         Task<MesureEnergie?> GetLatestMesureForBorneAsync(int borneId);
+        Task<List<MesureEnergie>> GetMesuresHistoryForBorneAsync(int borneId, int limitCount = 20);
         Task<bool> AddMesureEnergieAsync(MesureEnergie mesure);
         Task<bool> UpdateMesureEnergieAsync(int id, MesureEnergie mesure);
         Task<bool> DeleteMesureEnergieAsync(int id);

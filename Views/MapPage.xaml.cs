@@ -150,11 +150,11 @@ namespace SOLARY.Views
                         // Configuration pour iOS
                         iosWebView.Configuration.AllowsInlineMediaPlayback = true;
                         iosWebView.Configuration.MediaTypesRequiringUserActionForPlayback = WebKit.WKAudiovisualMediaTypes.None;
-                        
+
                         // Optimisations de performance
                         iosWebView.Configuration.Preferences.JavaScriptEnabled = true;
                         iosWebView.Configuration.Preferences.JavaScriptCanOpenWindowsAutomatically = false;
-                        
+
                         // Optimisations de mémoire
                         iosWebView.Configuration.ProcessPool = new WebKit.WKProcessPool();
                     }
@@ -612,45 +612,45 @@ namespace SOLARY.Views
 #endif
 
 #if IOS || MACCATALYST
-var handler = webView.Handler as Microsoft.Maui.Handlers.WebViewHandler;
-if (handler?.PlatformView is WebKit.WKWebView iosWebView)
-{
-    await MainThread.InvokeOnMainThreadAsync(() =>
-    {
-        // Nettoyer le cache
-        var dataTypes = WebKit.WKWebsiteDataStore.AllWebsiteDataTypes;
-        WebKit.WKWebsiteDataStore.DefaultDataStore.RemoveDataOfTypes(
-            dataTypes,
-            Foundation.NSDate.FromTimeIntervalSinceNow(-604800), // Nettoyer seulement le cache d'une semaine
-            () => Debug.WriteLine("Cache iOS nettoyé")
-        );
+            var handler = webView.Handler as Microsoft.Maui.Handlers.WebViewHandler;
+            if (handler?.PlatformView is WebKit.WKWebView iosWebView)
+            {
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    // Nettoyer le cache
+                    var dataTypes = WebKit.WKWebsiteDataStore.AllWebsiteDataTypes;
+                    WebKit.WKWebsiteDataStore.DefaultDataStore.RemoveDataOfTypes(
+                        dataTypes,
+                        Foundation.NSDate.FromTimeIntervalSinceNow(-604800), // Nettoyer seulement le cache d'une semaine
+                        () => Debug.WriteLine("Cache iOS nettoyé")
+                    );
 
-        // Optimisations de performance pour iOS
-        var config = iosWebView.Configuration;
-        config.AllowsInlineMediaPlayback = true;
-        config.MediaTypesRequiringUserActionForPlayback = WebKit.WKAudiovisualMediaTypes.None;
-        
-        // CORRECTION : Utiliser la nouvelle API pour iOS 14+
-        if (OperatingSystem.IsIOSVersionAtLeast(14) || OperatingSystem.IsMacCatalystVersionAtLeast(14))
-        {
-            // Utiliser la nouvelle API pour iOS 14+
-            config.DefaultWebpagePreferences.AllowsContentJavaScript = true;
-        }
-        else
-        {
-            // Utiliser l'ancienne API pour les versions antérieures
+                    // Optimisations de performance pour iOS
+                    var config = iosWebView.Configuration;
+                    config.AllowsInlineMediaPlayback = true;
+                    config.MediaTypesRequiringUserActionForPlayback = WebKit.WKAudiovisualMediaTypes.None;
+
+                    // CORRECTION : Utiliser la nouvelle API pour iOS 14+
+                    if (OperatingSystem.IsIOSVersionAtLeast(14) || OperatingSystem.IsMacCatalystVersionAtLeast(14))
+                    {
+                        // Utiliser la nouvelle API pour iOS 14+
+                        config.DefaultWebpagePreferences.AllowsContentJavaScript = true;
+                    }
+                    else
+                    {
+                        // Utiliser l'ancienne API pour les versions antérieures
 #pragma warning disable CA1416 // Validate platform compatibility
 #pragma warning disable CS0618 // Type or member is obsolete
-            config.Preferences.JavaScriptEnabled = true;
+                        config.Preferences.JavaScriptEnabled = true;
 #pragma warning restore CS0618
 #pragma warning restore CA1416
-        }
-        
-        // Optimisations pour le défilement fluide
-        iosWebView.ScrollView.Bounces = true;
-        
-        // Script pour l'interface JavaScript avec optimisations tactiles
-        var scriptContent = @"
+                    }
+
+                    // Optimisations pour le défilement fluide
+                    iosWebView.ScrollView.Bounces = true;
+
+                    // Script pour l'interface JavaScript avec optimisations tactiles
+                    var scriptContent = @"
     window.webkit.messageHandlers.jsBridge = { 
         postMessage: function(message) { 
             window.location.href = 'bridge://' + encodeURIComponent(JSON.stringify(message)); 
@@ -674,17 +674,17 @@ if (handler?.PlatformView is WebKit.WKWebView iosWebView)
     document.body.style.webkitOverflowScrolling = 'touch';
 ";
 
-        var script = new WebKit.WKUserScript(
-            new Foundation.NSString(scriptContent),
-            WebKit.WKUserScriptInjectionTime.AtDocumentStart,
-            false
-        );
+                    var script = new WebKit.WKUserScript(
+                        new Foundation.NSString(scriptContent),
+                        WebKit.WKUserScriptInjectionTime.AtDocumentStart,
+                        false
+                    );
 
-        iosWebView.Configuration.UserContentController.AddUserScript(script);
-        
-        Debug.WriteLine("[MapPage] WebView iOS configurée avec optimisations de performance");
-    });
-}
+                    iosWebView.Configuration.UserContentController.AddUserScript(script);
+
+                    Debug.WriteLine("[MapPage] WebView iOS configurée avec optimisations de performance");
+                });
+            }
 #endif
         }
 
@@ -2126,16 +2126,6 @@ if (handler?.PlatformView is WebKit.WKWebView iosWebView)
                 accueilTab.GestureRecognizers.Add(tapGesture);
             }
 
-            var statsTab = this.FindByName<VerticalStackLayout>("StatistiquesTab");
-            if (statsTab != null)
-            {
-                var tapGesture = new TapGestureRecognizer();
-                tapGesture.Tapped += async (s, e) => {
-                    await DisplayAlert("Statistiques", "La page Statistiques n'est pas encore implémentée.", "OK");
-                };
-                statsTab.GestureRecognizers.Add(tapGesture);
-            }
-
             // Gestionnaire pour l'onglet Code (remplace Scan)
             var codeTab = this.FindByName<VerticalStackLayout>("CodeTab");
             if (codeTab != null)
@@ -2152,7 +2142,7 @@ if (handler?.PlatformView is WebKit.WKWebView iosWebView)
             {
                 var tapGesture = new TapGestureRecognizer();
                 tapGesture.Tapped += async (s, e) => {
-                    await DisplayAlert("Paramètres", "La page Paramètres n'est pas encore implémentée.", "OK");
+                    await Navigation.PushAsync(new SettingsPage());
                 };
                 settingsTab.GestureRecognizers.Add(tapGesture);
             }

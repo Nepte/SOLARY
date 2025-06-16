@@ -131,12 +131,12 @@
                                          Margin="0"/>
                                 </Grid>
 
-                                <Label Text="{Binding CurrentKwh, StringFormat='{0:F3}'}" 
+                                <Label Text="{Binding CurrentKwh, StringFormat='{0:F1}'}" 
                                      FontSize="30" 
                                      FontAttributes="Bold" 
                                      VerticalOptions="Center"
                                      TextColor="#333333"/>
-                                <Label Text="KWh" 
+                                <Label Text="kWh" 
                                      FontSize="30" 
                                      TextColor="#666666" 
                                      VerticalOptions="Center"/>
@@ -156,13 +156,24 @@
                                      VerticalOptions="Center"/>
                             </Grid>
 
-                            <Grid Grid.Row="2" HeightRequest="6" Margin="0,5,0,0" x:Name="ProgressContainer">
-                                <BoxView Color="#EEEEEE" CornerRadius="3" HeightRequest="6"/>
-                                <BoxView Color="{Binding BatteryLevel, Converter={StaticResource BatteryToColorConverter}, ConverterParameter='bar'}" 
-                                       CornerRadius="3" 
-                                       HorizontalOptions="Start" 
-                                       HeightRequest="6"
-                                       WidthRequest="100"/>
+                            <Grid Grid.Row="2" HeightRequest="8" Margin="0,5,0,0" x:Name="ProgressContainer" BackgroundColor="Transparent">
+                                <Border BackgroundColor="#EEEEEE" 
+                                        StrokeThickness="0"
+                                        HeightRequest="8">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="4"/>
+                                    </Border.StrokeShape>
+                                </Border>
+                                <Border x:Name="ProgressBar"
+                                        BackgroundColor="{Binding BatteryLevel, Converter={StaticResource BatteryToColorConverter}, ConverterParameter='bar'}" 
+                                        StrokeThickness="0"
+                                        HorizontalOptions="Start" 
+                                        HeightRequest="8"
+                                        WidthRequest="{Binding ProgressBarWidth}">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="4"/>
+                                    </Border.StrokeShape>
+                                </Border>
                             </Grid>
                         </Grid>
                     </Border>
@@ -271,22 +282,22 @@
                                      Grid.Row="1"
                                      Margin="0,5,0,0"/>
                                 <HorizontalStackLayout Grid.Row="2" VerticalOptions="End" Spacing="5">
-                                    <Label Text="{Binding Co2Reduction, StringFormat='{0:F6}'}" 
+                                    <Label Text="{Binding Co2Reduction, StringFormat='{0:F1}'}" 
                                          TextColor="#333333"
-                                         FontSize="36"
+                                         FontSize="32"
                                          FontAttributes="Bold"/>
-                                    <Label Text="g" 
+                                    <Label Text="mg/min" 
                                          TextColor="#666666"
-                                         FontSize="16"
+                                         FontSize="14"
                                          VerticalOptions="End"
-                                         Margin="0,0,0,5"/>
+                                         Margin="0,0,0,8"/>
                                 </HorizontalStackLayout>
                             </Grid>
                         </Border>
                     </Grid>
                 </Grid>
 
-                <!-- Chart Card -->
+                <!-- Single Metric Chart Card -->
                 <Border Grid.Row="4" 
                      BackgroundColor="White"
                      StrokeShape="RoundRectangle 20"
@@ -294,9 +305,9 @@
                      StrokeThickness="0"
                      Style="{StaticResource CardShadowStyle}"
                      Margin="0,0,0,20">
-                    <Grid RowDefinitions="Auto,Auto,*" RowSpacing="10">
+                    <Grid RowDefinitions="Auto,Auto,*" RowSpacing="15">
                         <Grid ColumnDefinitions="*,Auto">
-                            <Label Text="Électricité produite par l'énergie solaire" 
+                            <Label Text="Métriques de la borne en temps réel" 
                                  TextColor="#666666" 
                                  FontSize="16"/>
                             <Button Grid.Column="1" 
@@ -308,93 +319,67 @@
                                   CornerRadius="15"/>
                         </Grid>
 
-                        <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto">
-                            <HorizontalStackLayout Grid.Column="0">
-                                <Label Text="{Binding PanelGenerated, StringFormat='{0:F2}'}" 
-                                     FontSize="24" 
-                                     FontAttributes="Bold" 
-                                     VerticalOptions="Center"
-                                     TextColor="#333333"/>
-                                <Label Text="KWh" 
-                                     FontSize="20" 
-                                     TextColor="#666666" 
-                                     VerticalOptions="Center"
-                                     Margin="5,0,0,0"/>
-                            </HorizontalStackLayout>
+                        <!-- Navigation et Légende -->
+                        <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" VerticalOptions="Center">
+                            <!-- Flèche Précédent -->
+                            <Button Grid.Column="0" 
+                                  x:Name="PreviousMetricButton"
+                                  Text="◀" 
+                                  FontSize="16" 
+                                  BackgroundColor="Transparent" 
+                                  TextColor="#666666" 
+                                  Padding="10,5" 
+                                  CornerRadius="15"
+                                  WidthRequest="40"
+                                  HeightRequest="40"/>
 
-                            <HorizontalStackLayout Grid.Column="2" Spacing="5">
-                                <Ellipse Fill="#FFD602" 
-                                       HeightRequest="8" 
-                                       WidthRequest="8" 
+                            <!-- Légende de la métrique actuelle -->
+                            <HorizontalStackLayout Grid.Column="1" 
+                                                 HorizontalOptions="Center" 
+                                                 VerticalOptions="Center" 
+                                                 Spacing="8">
+                                <Ellipse x:Name="CurrentMetricColorIndicator"
+                                       Fill="{Binding CurrentMetricColor}" 
+                                       HeightRequest="12" 
+                                       WidthRequest="12" 
                                        VerticalOptions="Center"/>
-                                <Label Text="En direct" 
+                                <Label x:Name="CurrentMetricLabel"
+                                     Text="{Binding CurrentMetricDisplayName}" 
                                      TextColor="#333333" 
-                                     FontSize="14" 
+                                     FontSize="16" 
+                                     FontAttributes="Bold"
                                      VerticalOptions="Center"/>
                             </HorizontalStackLayout>
+
+                            <!-- Flèche Suivant -->
+                            <Button Grid.Column="2" 
+                                  x:Name="NextMetricButton"
+                                  Text="▶" 
+                                  FontSize="16" 
+                                  BackgroundColor="Transparent" 
+                                  TextColor="#666666" 
+                                  Padding="10,5" 
+                                  CornerRadius="15"
+                                  WidthRequest="40"
+                                  HeightRequest="40"/>
                         </Grid>
 
-                        <!-- Chart View -->
-                        <Grid Grid.Row="2" RowDefinitions="Auto,*,Auto" ColumnDefinitions="Auto,*" Margin="0,10,0,0">
-                            <Grid Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" RowDefinitions="1*,1*,1*,1*,1*" VerticalOptions="Fill">
-                                <Label Text="200KWh" TextColor="#999999" FontSize="12" HorizontalOptions="End" Margin="0,0,5,0" Grid.Row="0"/>
-                                <Label Text="150KWh" TextColor="#999999" FontSize="12" HorizontalOptions="End" Margin="0,0,5,0" Grid.Row="1"/>
-                                <Label Text="100KWh" TextColor="#999999" FontSize="12" HorizontalOptions="End" Margin="0,0,5,0" Grid.Row="2"/>
-                                <Label Text="50KWh" TextColor="#999999" FontSize="12" HorizontalOptions="End" Margin="0,0,5,0" Grid.Row="3"/>
-                                <Label Text="0" TextColor="#999999" FontSize="12" HorizontalOptions="End" Margin="0,0,5,0" Grid.Row="4"/>
-                            </Grid>
-
-                            <Grid Grid.Row="0" Grid.RowSpan="2" Grid.Column="1">
-                                <GraphicsView x:Name="GraphView" 
-                                            Drawable="{Binding GraphDrawable}"
-                                            HeightRequest="200">
-                                    <GraphicsView.GestureRecognizers>
-                                        <PanGestureRecognizer PanUpdated="OnGraphPanUpdated" />
-                                        <TapGestureRecognizer Tapped="OnGraphTapped" />
-                                    </GraphicsView.GestureRecognizers>
-                                </GraphicsView>
-                            </Grid>
-
-                            <Border Grid.Row="0" Grid.Column="1"
-                                 BackgroundColor="#333333"
-                                 StrokeShape="RoundRectangle 8"
-                                 Padding="10,8"
-                                 StrokeThickness="0"
-                                 HorizontalOptions="Center"
-                                 VerticalOptions="Start"
-                                 Margin="0,20,0,0"
-                                 x:Name="TooltipFrame"
-                                 Shadow="{Shadow Brush='#40000000', Offset='0,3', Radius='6'}">
-                                <VerticalStackLayout Spacing="2">
-                                    <Label x:Name="TooltipDate"
-                                         Text="Fév, 22" 
-                                         TextColor="White"
-                                         FontSize="14"
-                                         FontAttributes="Bold"
-                                         HorizontalOptions="Center"/>
-                                    <Label x:Name="TooltipValue"
-                                         Text="120kwh" 
-                                         TextColor="White"
-                                         FontSize="14"
-                                         HorizontalOptions="Center"/>
-                                </VerticalStackLayout>
-                            </Border>
-
-                            <Grid Grid.Row="2" Grid.Column="1" ColumnDefinitions="1*,1*,1*,1*,1*,1*">
-                                <Label Text="13:00" TextColor="#999999" FontSize="12" HorizontalOptions="Start" Grid.Column="0"/>
-                                <Label Text="14:00" TextColor="#999999" FontSize="12" HorizontalOptions="Center" Grid.Column="1"/>
-                                <Label Text="15:00" TextColor="#999999" FontSize="12" HorizontalOptions="Center" Grid.Column="2"/>
-                                <Label Text="16:00" TextColor="#999999" FontSize="12" HorizontalOptions="Center" Grid.Column="3"/>
-                                <Label Text="17:00" TextColor="#999999" FontSize="12" HorizontalOptions="Center" Grid.Column="4"/>
-                                <Label Text="18:00" TextColor="#999999" FontSize="12" HorizontalOptions="End" Grid.Column="5"/>
-                            </Grid>
-                        </Grid>
+                        <!-- Single Metric Chart View -->
+                        <GraphicsView Grid.Row="2" 
+                                    x:Name="SingleMetricChart"
+                                    HeightRequest="250"
+                                    Drawable="{Binding SingleMetricChartDrawable}">
+                            <GraphicsView.GestureRecognizers>
+                                <SwipeGestureRecognizer Direction="Left" x:Name="SwipeLeftGesture"/>
+                                <SwipeGestureRecognizer Direction="Right" x:Name="SwipeRightGesture"/>
+                            </GraphicsView.GestureRecognizers>
+                        </GraphicsView>
                     </Grid>
                 </Border>
             </Grid>
         </ScrollView>
 
-        <!-- Bottom Navigation -->
+        <!-- Bottom Navigation - 4 onglets au lieu de 5 -->
         <Border Grid.Row="1" 
              BackgroundColor="White" 
              StrokeShape="RoundRectangle 30,30,0,0"
@@ -403,7 +388,7 @@
              HeightRequest="80" 
              VerticalOptions="End"
              Shadow="{Shadow Brush='#30000000', Offset='0,-5', Radius='15'}">
-            <Grid RowDefinitions="Auto,*" ColumnDefinitions="*,*,*,*,*">
+            <Grid RowDefinitions="Auto,*" ColumnDefinitions="*,*,*,*">
                 <BoxView Grid.Row="0" Grid.Column="0" 
                        HeightRequest="3" 
                        WidthRequest="40" 
@@ -423,15 +408,6 @@
 
                 <VerticalStackLayout Grid.Row="1" Grid.Column="1" 
                                    Style="{StaticResource NavItemStyle}"
-                                   x:Name="StatistiquesTab">
-                    <Image Source="icon_stats.png" 
-                         Style="{StaticResource NavIconStyle}"/>
-                    <Label Text="Statistiques" 
-                         Style="{StaticResource NavTextStyle}"/>
-                </VerticalStackLayout>
-
-                <VerticalStackLayout Grid.Row="1" Grid.Column="2" 
-                                   Style="{StaticResource NavItemStyle}"
                                    x:Name="LocaliserTab">
                     <Image Source="icon_map.png" 
                          Style="{StaticResource NavIconStyle}"/>
@@ -439,7 +415,7 @@
                          Style="{StaticResource NavTextStyle}"/>
                 </VerticalStackLayout>
 
-                <VerticalStackLayout Grid.Row="1" Grid.Column="3" 
+                <VerticalStackLayout Grid.Row="1" Grid.Column="2" 
                                    Style="{StaticResource NavItemStyle}"
                                    x:Name="CodeTab">
                     <Image Source="icon_code.png" 
@@ -448,7 +424,7 @@
                          Style="{StaticResource NavTextStyle}"/>
                 </VerticalStackLayout>
 
-                <VerticalStackLayout Grid.Row="1" Grid.Column="4" 
+                <VerticalStackLayout Grid.Row="1" Grid.Column="3" 
                                    Style="{StaticResource NavItemStyle}"
                                    x:Name="ParametresTab">
                     <Image Source="icon_settings.png" 

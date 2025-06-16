@@ -128,6 +128,48 @@
                                  HorizontalOptions="FillAndExpand" />
                     </StackLayout>
 
+                    <!-- ✨ NOUVEAU: Case à cocher "Se souvenir de moi" -->
+                    <Grid ColumnDefinitions="Auto, *" 
+                          VerticalOptions="Center"
+                          Margin="0,10,0,0">
+                        <Grid.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding ToggleRememberMeCommand}" />
+                        </Grid.GestureRecognizers>
+
+                        <!-- Case à cocher personnalisée -->
+                        <Border Grid.Column="0"
+                                WidthRequest="20"
+                                HeightRequest="20"
+                                BackgroundColor="{Binding CheckboxBackgroundColor}"
+                                Stroke="{Binding CheckboxBorderColor}"
+                                StrokeThickness="2"
+                                VerticalOptions="Center"
+                                HorizontalOptions="Start"
+                                Margin="0,0,12,0">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="3" />
+                            </Border.StrokeShape>
+
+                            <!-- Icône de validation (✓) -->
+                            <Label Text="✓"
+                                   FontSize="12"
+                                   TextColor="Black"
+                                   FontAttributes="Bold"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center"
+                                   IsVisible="{Binding CheckmarkVisibility}" />
+                        </Border>
+
+                        <!-- Texte "Se souvenir de moi" -->
+                        <Label Grid.Column="1"
+                               Text="Se souvenir de moi"
+                               FontFamily="PoppinsRegular"
+                               FontSize="14"
+                               TextColor="White"
+                               VerticalOptions="Center"
+                               HorizontalOptions="Start" />
+                    </Grid>
+
                     <!-- Lien mot de passe oublié -->
                     <Label Text="Mot de passe oublié ?"
                            FontFamily="PoppinsRegular"

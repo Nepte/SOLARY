@@ -212,7 +212,7 @@
             </VerticalStackLayout>
         </ScrollView>
 
-        <!-- Bottom Navigation - Fixé en bas de l'écran -->
+        <!-- Bottom Navigation - 4 onglets au lieu de 5 -->
         <Border Grid.Row="1" 
              BackgroundColor="White" 
              StrokeShape="RoundRectangle 30,30,0,0"
@@ -222,9 +222,9 @@
              VerticalOptions="End"
              Shadow="{Shadow Brush='#30000000', Offset='0,-5', Radius='15'}"
              ZIndex="2">
-            <Grid RowDefinitions="Auto,*" ColumnDefinitions="*,*,*,*,*">
+            <Grid RowDefinitions="Auto,*" ColumnDefinitions="*,*,*,*">
                 <!-- Indicateur jaune pour l'onglet actif -->
-                <BoxView Grid.Row="0" Grid.Column="2" 
+                <BoxView Grid.Row="0" Grid.Column="1" 
                        HeightRequest="3" 
                        WidthRequest="40" 
                        Color="#FFD602" 
@@ -242,18 +242,8 @@
                          Style="{StaticResource NavTextStyle}"/>
                 </VerticalStackLayout>
 
-                <!-- Onglet Statistiques -->
+                <!-- Onglet Localiser (actif) -->
                 <VerticalStackLayout Grid.Row="1" Grid.Column="1" 
-                                   Style="{StaticResource NavItemStyle}"
-                                   x:Name="StatistiquesTab">
-                    <Image Source="icon_stats.png" 
-                         Style="{StaticResource NavIconStyle}"/>
-                    <Label Text="Statistiques" 
-                         Style="{StaticResource NavTextStyle}"/>
-                </VerticalStackLayout>
-
-                <!-- Onglet Localiser -->
-                <VerticalStackLayout Grid.Row="1" Grid.Column="2" 
                                    Style="{StaticResource NavItemStyle}"
                                    x:Name="LocaliserTab">
                     <Image Source="icon_map.png" 
@@ -262,8 +252,8 @@
                          Style="{StaticResource NavTextActiveStyle}"/>
                 </VerticalStackLayout>
 
-                <!-- Onglet Code (remplace Scan) -->
-                <VerticalStackLayout Grid.Row="1" Grid.Column="3" 
+                <!-- Onglet Code -->
+                <VerticalStackLayout Grid.Row="1" Grid.Column="2" 
                                    Style="{StaticResource NavItemStyle}"
                                    x:Name="CodeTab">
                     <Image Source="icon_code.png" 
@@ -273,7 +263,7 @@
                 </VerticalStackLayout>
 
                 <!-- Onglet Paramètres -->
-                <VerticalStackLayout Grid.Row="1" Grid.Column="4" 
+                <VerticalStackLayout Grid.Row="1" Grid.Column="3" 
                                    Style="{StaticResource NavItemStyle}"
                                    x:Name="ParametresTab">
                     <Image Source="icon_settings.png" 

@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="SOLARY.Views.SolarPanelDetailsPage"
+             BackgroundColor="White"
+             NavigationPage.HasNavigationBar="False"
+             Shell.NavBarIsVisible="False"
+             Shell.TabBarIsVisible="False">
+
+    <Grid RowDefinitions="Auto,*">
+        <!-- En-tête simple -->
+        <Grid Grid.Row="0" 
+              BackgroundColor="White" 
+              Padding="25,60,25,30"
+              RowDefinitions="Auto,Auto,Auto">
+
+            <!-- Bouton retour -->
+            <Border Grid.Row="0"
+                    BackgroundColor="#F8F9FA"
+                    StrokeShape="RoundRectangle 12"
+                    Padding="12,8"
+                    HorizontalOptions="Start"
+                    StrokeThickness="0">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnBackClicked"/>
+                </Border.GestureRecognizers>
+                <HorizontalStackLayout Spacing="8">
+                    <Label Text="←" FontSize="16" TextColor="#333333" VerticalOptions="Center"/>
+                    <Label Text="Retour" FontSize="14" TextColor="#666666" VerticalOptions="Center"/>
+                </HorizontalStackLayout>
+            </Border>
+
+            <!-- Titre principal -->
+            <VerticalStackLayout Grid.Row="1" Spacing="8" Margin="0,30,0,0" HorizontalOptions="Center">
+                <Label Text="SOLARY" FontSize="32" FontAttributes="Bold" TextColor="#FFD602" HorizontalOptions="Center"/>
+                <Label Text="Détails du Projet" FontSize="24" FontAttributes="Bold" TextColor="#1a1a1a" HorizontalOptions="Center"/>
+            </VerticalStackLayout>
+
+            <!-- Ligne décorative -->
+            <Border Grid.Row="2" BackgroundColor="#FFD602" HeightRequest="3" WidthRequest="60" StrokeThickness="0" HorizontalOptions="Center" Margin="0,20,0,0"/>
+        </Grid>
+
+        <!-- Contenu principal -->
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Spacing="35" Padding="25,30,25,50">
+
+                <!-- Section Remerciements -->
+                <Border BackgroundColor="#FAFAFA" StrokeShape="RoundRectangle 20" StrokeThickness="0" Padding="30">
+                    <VerticalStackLayout Spacing="18">
+                        <Border BackgroundColor="#FFF9E6" StrokeShape="RoundRectangle 12" Padding="15,10" HorizontalOptions="Center" StrokeThickness="0">
+                            <Label Text="Remerciements" FontSize="18" FontAttributes="Bold" TextColor="#B8860B"/>
+                        </Border>
+                        <Label Text="Un grand merci à toute l'équipe qui a rendu ce projet possible grâce à leur expertise et leur collaboration exceptionnelle."
+                               FontSize="16" TextColor="#555555" LineBreakMode="WordWrap" HorizontalTextAlignment="Center"/>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Section Équipe -->
+                <VerticalStackLayout Spacing="25">
+                    <VerticalStackLayout Spacing="12" HorizontalOptions="Center">
+                        <Label Text="Équipe de Développement" FontSize="22" FontAttributes="Bold" TextColor="#1a1a1a" HorizontalOptions="Center"/>
+                        <Border BackgroundColor="#FFD602" HeightRequest="2" WidthRequest="40" StrokeThickness="0" HorizontalOptions="Center"/>
+                    </VerticalStackLayout>
+
+                    <!-- Alexandre COENE -->
+                    <Border BackgroundColor="#FAFAFA" StrokeShape="RoundRectangle 18" StrokeThickness="0" Padding="25">
+                        <VerticalStackLayout Spacing="15">
+                            <HorizontalStackLayout Spacing="15">
+                                <Border BackgroundColor="#007ACC" StrokeShape="RoundRectangle 8" WidthRequest="6" HeightRequest="45" VerticalOptions="Center" StrokeThickness="0"/>
+                                <VerticalStackLayout Spacing="6" VerticalOptions="Center">
+                                    <Label Text="Alexandre COENE" FontSize="18" FontAttributes="Bold" TextColor="#1a1a1a"/>
+                                    <Label Text="Développeur Principal et Ingénieur Matériel" FontSize="13" TextColor="#007ACC" FontAttributes="Bold"/>
+                                </VerticalStackLayout>
+                            </HorizontalStackLayout>
+                            <Label Text="Développement application administrateur • Conception et création de la borne physique"
+                                   FontSize="14" TextColor="#666666" LineBreakMode="WordWrap"/>
+
+                            <!-- Liens Alexandre -->
+                            <HorizontalStackLayout Spacing="10" HorizontalOptions="Center">
+                                <Border BackgroundColor="#0077B5" StrokeShape="RoundRectangle 10" Padding="12,8" StrokeThickness="0">
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnAlexandreLinkedInClicked"/>
+                                    </Border.GestureRecognizers>
+                                    <HorizontalStackLayout Spacing="6">
+                                        <Border BackgroundColor="White" StrokeShape="RoundRectangle 4" Padding="4,2" StrokeThickness="0">
+                                            <Label Text="in" FontSize="10" FontAttributes="Bold" TextColor="#0077B5"/>
+                                        </Border>
+                                        <Label Text="LinkedIn" FontSize="12" TextColor="White" VerticalOptions="Center"/>
+                                    </HorizontalStackLayout>
+                                </Border>
+                                <Border BackgroundColor="#EA4335" StrokeShape="RoundRectangle 10" Padding="12,8" StrokeThickness="0">
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnAlexandreEmailClicked"/>
+                                    </Border.GestureRecognizers>
+                                    <HorizontalStackLayout Spacing="6">
+                                        <Label Text="@" FontSize="12" FontAttributes="Bold" TextColor="White" VerticalOptions="Center"/>
+                                        <Label Text="Email" FontSize="12" TextColor="White" VerticalOptions="Center"/>
+                                    </HorizontalStackLayout>
+                                </Border>
+                                <Border BackgroundColor="#24292e" StrokeShape="RoundRectangle 10" Padding="12,8" StrokeThickness="0">
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnAlexandreGitHubClicked"/>
+                                    </Border.GestureRecognizers>
+                                    <HorizontalStackLayout Spacing="6">
+                                        <Label Text="Code" FontSize="11" FontAttributes="Bold" TextColor="White" VerticalOptions="Center"/>
+                                        <Label Text="GitHub" FontSize="12" TextColor="White" VerticalOptions="Center"/>
+                                    </HorizontalStackLayout>
+                                </Border>
+                            </HorizontalStackLayout>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- Clément VABRE -->
+                    <Border BackgroundColor="#FAFAFA" StrokeShape="RoundRectangle 18" StrokeThickness="0" Padding="25">
+                        <VerticalStackLayout Spacing="15">
+                            <HorizontalStackLayout Spacing="15">
+                                <Border BackgroundColor="#FF6B35" StrokeShape="RoundRectangle 8" WidthRequest="6" HeightRequest="45" VerticalOptions="Center" StrokeThickness="0"/>
+                                <VerticalStackLayout Spacing="6" VerticalOptions="Center">
+                                    <Label Text="Clément VABRE" FontSize="18" FontAttributes="Bold" TextColor="#1a1a1a"/>
+                                    <Label Text="Ingénieur Électricien" FontSize="13" TextColor="#FF6B35" FontAttributes="Bold"/>
+                                </VerticalStackLayout>
+                            </HorizontalStackLayout>
+                            <Label Text="Conception et développement de la partie électrique • Systèmes d'alimentation et de charge"
+                                   FontSize="14" TextColor="#666666" LineBreakMode="WordWrap"/>
+
+                            <!-- Liens Clément -->
+                            <HorizontalStackLayout Spacing="10" HorizontalOptions="Center">
+                                <Border BackgroundColor="#0077B5" StrokeShape="RoundRectangle 10" Padding="12,8" StrokeThickness="0">
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnClementLinkedInClicked"/>
+                                    </Border.GestureRecognizers>
+                                    <HorizontalStackLayout Spacing="6">
+                                        <Border BackgroundColor="White" StrokeShape="RoundRectangle 4" Padding="4,2" StrokeThickness="0">
+                                            <Label Text="in" FontSize="10" FontAttributes="Bold" TextColor="#0077B5"/>
+                                        </Border>
+                                        <Label Text="LinkedIn" FontSize="12" TextColor="White" VerticalOptions="Center"/>
+                                    </HorizontalStackLayout>
+                                </Border>
+                                <Border BackgroundColor="#6366F1" StrokeShape="RoundRectangle 10" Padding="12,8" StrokeThickness="0">
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnClementPortfolioClicked"/>
+                                    </Border.GestureRecognizers>
+                                    <HorizontalStackLayout Spacing="6">
+                                        <Label Text="Web" FontSize="11" FontAttributes="Bold" TextColor="White" VerticalOptions="Center"/>
+                                        <Label Text="Portfolio" FontSize="12" TextColor="White" VerticalOptions="Center"/>
+                                    </HorizontalStackLayout>
+                                </Border>
+                                <Border BackgroundColor="#24292e" StrokeShape="RoundRectangle 10" Padding="12,8" StrokeThickness="0">
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnClementGitHubClicked"/>
+                                    </Border.GestureRecognizers>
+                                    <HorizontalStackLayout Spacing="6">
+                                        <Label Text="Code" FontSize="11" FontAttributes="Bold" TextColor="White" VerticalOptions="Center"/>
+                                        <Label Text="GitHub" FontSize="12" TextColor="White" VerticalOptions="Center"/>
+                                    </HorizontalStackLayout>
+                                </Border>
+                            </HorizontalStackLayout>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- Yael ELKAROUI -->
+                    <Border BackgroundColor="#FAFAFA" StrokeShape="RoundRectangle 18" StrokeThickness="0" Padding="25">
+                        <VerticalStackLayout Spacing="15">
+                            <HorizontalStackLayout Spacing="15">
+                                <Border BackgroundColor="#28A745" StrokeShape="RoundRectangle 8" WidthRequest="6" HeightRequest="45" VerticalOptions="Center" StrokeThickness="0"/>
+                                <VerticalStackLayout Spacing="6" VerticalOptions="Center">
+                                    <Label Text="Yael ELKAROUI" FontSize="18" FontAttributes="Bold" TextColor="#1a1a1a"/>
+                                    <Label Text="Développeur Backend et Architecte Base de Données" FontSize="13" TextColor="#28A745" FontAttributes="Bold"/>
+                                </VerticalStackLayout>
+                            </HorizontalStackLayout>
+                            <Label Text="Développement de l'API • Architecture et optimisation de la base de données"
+                                   FontSize="14" TextColor="#666666" LineBreakMode="WordWrap"/>
+
+                            <!-- Liens Yael -->
+                            <HorizontalStackLayout Spacing="10" HorizontalOptions="Center">
+                                <Border BackgroundColor="#0077B5" StrokeShape="RoundRectangle 10" Padding="12,8" StrokeThickness="0">
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnYaelLinkedInClicked"/>
+                                    </Border.GestureRecognizers>
+                                    <HorizontalStackLayout Spacing="6">
+                                        <Border BackgroundColor="White" StrokeShape="RoundRectangle 4" Padding="4,2" StrokeThickness="0">
+                                            <Label Text="in" FontSize="10" FontAttributes="Bold" TextColor="#0077B5"/>
+                                        </Border>
+                                        <Label Text="LinkedIn" FontSize="12" TextColor="White" VerticalOptions="Center"/>
+                                    </HorizontalStackLayout>
+                                </Border>
+                                <Border BackgroundColor="#24292e" StrokeShape="RoundRectangle 10" Padding="12,8" StrokeThickness="0">
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnYaelGitHubClicked"/>
+                                    </Border.GestureRecognizers>
+                                    <HorizontalStackLayout Spacing="6">
+                                        <Label Text="Code" FontSize="11" FontAttributes="Bold" TextColor="White" VerticalOptions="Center"/>
+                                        <Label Text="GitHub" FontSize="12" TextColor="White" VerticalOptions="Center"/>
+                                    </HorizontalStackLayout>
+                                </Border>
+                            </HorizontalStackLayout>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- Erzen GASHI (mis en valeur) -->
+                    <Border BackgroundColor="#FFFBF0" Stroke="#FFD602" StrokeThickness="2" StrokeShape="RoundRectangle 18" Padding="25">
+                        <VerticalStackLayout Spacing="15">
+                            <HorizontalStackLayout Spacing="15">
+                                <Border BackgroundColor="#FFD602" StrokeShape="RoundRectangle 8" WidthRequest="6" HeightRequest="45" VerticalOptions="Center" StrokeThickness="0"/>
+                                <VerticalStackLayout Spacing="6" VerticalOptions="Center">
+                                    <Label Text="Erzen GASHI" FontSize="18" FontAttributes="Bold" TextColor="#1a1a1a"/>
+                                    <Label Text="Développeur Mobile et Designer UI/UX" FontSize="13" TextColor="#FFD602" FontAttributes="Bold"/>
+                                </VerticalStackLayout>
+                            </HorizontalStackLayout>
+                            <Label Text="Développement complet de l'application mobile • Interface utilisateur et expérience optimisée"
+                                   FontSize="14" TextColor="#666666" LineBreakMode="WordWrap"/>
+
+                            <!-- Liens Erzen -->
+                            <HorizontalStackLayout Spacing="10" HorizontalOptions="Center">
+                                <Border BackgroundColor="#0077B5" StrokeShape="RoundRectangle 10" Padding="12,8" StrokeThickness="0">
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnErzenLinkedInClicked"/>
+                                    </Border.GestureRecognizers>
+                                    <HorizontalStackLayout Spacing="6">
+                                        <Border BackgroundColor="White" StrokeShape="RoundRectangle 4" Padding="4,2" StrokeThickness="0">
+                                            <Label Text="in" FontSize="10" FontAttributes="Bold" TextColor="#0077B5"/>
+                                        </Border>
+                                        <Label Text="LinkedIn" FontSize="12" TextColor="White" VerticalOptions="Center"/>
+                                    </HorizontalStackLayout>
+                                </Border>
+                                <Border BackgroundColor="#24292e" StrokeShape="RoundRectangle 10" Padding="12,8" StrokeThickness="0">
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnErzenGitHubClicked"/>
+                                    </Border.GestureRecognizers>
+                                    <HorizontalStackLayout Spacing="6">
+                                        <Label Text="Code" FontSize="11" FontAttributes="Bold" TextColor="White" VerticalOptions="Center"/>
+                                        <Label Text="GitHub" FontSize="12" TextColor="White" VerticalOptions="Center"/>
+                                    </HorizontalStackLayout>
+                                </Border>
+                            </HorizontalStackLayout>
+                        </VerticalStackLayout>
+                    </Border>
+                </VerticalStackLayout>
+
+                <!-- Section Localisation -->
+                <Border BackgroundColor="#FAFAFA" StrokeShape="RoundRectangle 20" StrokeThickness="0" Padding="30">
+                    <VerticalStackLayout Spacing="20">
+                        <VerticalStackLayout Spacing="12" HorizontalOptions="Center">
+                            <Label Text="Localisation de la Borne" FontSize="20" FontAttributes="Bold" TextColor="#1a1a1a" HorizontalOptions="Center"/>
+                            <Border BackgroundColor="#28A745" HeightRequest="2" WidthRequest="40" StrokeThickness="0" HorizontalOptions="Center"/>
+                        </VerticalStackLayout>
+
+                        <Border BackgroundColor="White" StrokeShape="RoundRectangle 15" Padding="25" StrokeThickness="0">
+                            <VerticalStackLayout Spacing="12" HorizontalOptions="Center">
+                                <Label Text="27 Fbg des Balmettes" FontSize="18" FontAttributes="Bold" TextColor="#1a1a1a" HorizontalOptions="Center"/>
+                                <Label Text="74000 Annecy, France" FontSize="16" TextColor="#666666" HorizontalOptions="Center"/>
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <!-- Bouton Maps -->
+                        <Border BackgroundColor="#28A745" StrokeShape="RoundRectangle 15" Padding="18,12" StrokeThickness="0" HorizontalOptions="Center">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnOpenMapsClicked"/>
+                            </Border.GestureRecognizers>
+                            <HorizontalStackLayout Spacing="10">
+                                <Border BackgroundColor="White" StrokeShape="RoundRectangle 6" Padding="6,4" StrokeThickness="0">
+                                    <Label Text="MAP" FontSize="10" FontAttributes="Bold" TextColor="#28A745"/>
+                                </Border>
+                                <Label Text="Voir sur la carte" FontSize="16" FontAttributes="Bold" TextColor="White" VerticalOptions="Center"/>
+                            </HorizontalStackLayout>
+                        </Border>
+                    </VerticalStackLayout>
+                </Border>
+
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
+</ContentPage>

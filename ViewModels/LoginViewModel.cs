@@ -11,12 +11,38 @@ namespace SOLARY.ViewModels
     {
         private readonly AuthService _authService;
         private readonly UserService _userService;
+        private bool _isNavigating = false;
 
         public string Email { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
 
+        // ✨ CORRIGÉ: Propriété pour "Se souvenir de moi" avec binding bidirectionnel
+        private bool _rememberMe = false;
+        public bool RememberMe
+        {
+            get => _rememberMe;
+            set
+            {
+                if (_rememberMe != value)
+                {
+                    _rememberMe = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(CheckboxBackgroundColor));
+                    OnPropertyChanged(nameof(CheckboxBorderColor));
+                    OnPropertyChanged(nameof(CheckmarkVisibility));
+                    Debug.WriteLine($"[DEBUG] RememberMe changé: {value}");
+                }
+            }
+        }
+
+        // Propriétés pour gérer l'apparence de la checkbox
+        public Color CheckboxBackgroundColor => RememberMe ? Color.FromArgb("#FFD602") : Colors.Transparent;
+        public Color CheckboxBorderColor => Colors.White;
+        public bool CheckmarkVisibility => RememberMe;
+
         public ICommand LoginCommand { get; }
         public ICommand NavigateToRegisterCommand { get; }
+        public ICommand ToggleRememberMeCommand { get; }
 
         public LoginViewModel()
         {
@@ -24,10 +50,24 @@ namespace SOLARY.ViewModels
             _userService = new UserService();
             LoginCommand = new Command(async () => await Login());
             NavigateToRegisterCommand = new Command(async () => await NavigateToRegister());
+            // ✨ CORRIGÉ: Commande toggle avec debug
+            ToggleRememberMeCommand = new Command(() =>
+            {
+                Debug.WriteLine($"[DEBUG] Toggle RememberMe: {RememberMe} -> {!RememberMe}");
+                RememberMe = !RememberMe;
+            });
+        }
+
+        // Méthode publique pour initialiser la vérification auto-login
+        public async Task InitializeAsync()
+        {
+            await CheckAutoLogin();
         }
 
         private async Task Login()
         {
+            if (_isNavigating) return;
+
             var page = GetCurrentPage();
             if (page == null) return;
 
@@ -36,6 +76,8 @@ namespace SOLARY.ViewModels
             try
             {
                 Debug.WriteLine($"[DEBUG] Tentative de connexion pour {Email}");
+                Debug.WriteLine($"[DEBUG] RememberMe état: {RememberMe}");
+
                 var response = await _authService.Login(Email, Password);
 
                 if (response == null)
@@ -53,11 +95,25 @@ namespace SOLARY.ViewModels
 
                     if (userId > 0)
                     {
-                        // Sauvegarder la session
+                        // Sauvegarder la session normale
                         SessionService.SaveUserSession(userId, Email);
 
+                        // ✨ CORRIGÉ: Si "Se souvenir de moi" est coché, sauvegarder pour 2 semaines
+                        if (RememberMe)
+                        {
+                            var expirationDate = DateTime.Now.AddDays(14); // 2 semaines
+                            var sessionData = $"{userId}|{Email}|{expirationDate:yyyy-MM-dd HH:mm:ss}";
+                            await SecureStorage.SetAsync("RememberMeSession", sessionData);
+                            Debug.WriteLine($"[DEBUG] ✅ Session 'Se souvenir de moi' sauvegardée jusqu'au {expirationDate}");
+                            Debug.WriteLine($"[DEBUG] ✅ Données sauvegardées: {sessionData}");
+                        }
+                        else
+                        {
+                            Debug.WriteLine("[DEBUG] ❌ RememberMe non coché, pas de sauvegarde longue durée");
+                        }
+
                         await ShowAlertAsync("Succès", "Connexion réussie !");
-                        await NavigateToHomePage(); // Navigation vers HomePage
+                        await NavigateToHomePage();
                     }
                     else
                     {
@@ -73,6 +129,71 @@ namespace SOLARY.ViewModels
             {
                 Debug.WriteLine($"[ERREUR] Exception lors de la connexion : {ex.Message}");
                 await ShowAlertAsync("Erreur Exception", $"Une erreur s'est produite : {ex.Message}");
+            }
+        }
+
+        // Méthode pour vérifier la connexion automatique (appelée depuis LoginPage seulement)
+        private async Task CheckAutoLogin()
+        {
+            try
+            {
+                Debug.WriteLine("[DEBUG] LoginPage: Vérification de la connexion automatique...");
+
+                var savedSession = await SecureStorage.GetAsync("RememberMeSession");
+                if (!string.IsNullOrEmpty(savedSession))
+                {
+                    Debug.WriteLine("[DEBUG] LoginPage: Session sauvegardée trouvée");
+
+                    var sessionParts = savedSession.Split('|');
+                    if (sessionParts.Length >= 3)
+                    {
+                        var userId = sessionParts[0];
+                        var email = sessionParts[1];
+                        var expirationDate = DateTime.Parse(sessionParts[2]);
+
+                        if (DateTime.Now < expirationDate)
+                        {
+                            Debug.WriteLine($"[DEBUG] LoginPage: Session valide pour {email}, connexion automatique...");
+
+                            SessionService.SaveUserSession(int.Parse(userId), email);
+                            await SafeNavigateToHomePage();
+                            return;
+                        }
+                        else
+                        {
+                            Debug.WriteLine("[DEBUG] LoginPage: Session expirée, suppression...");
+                            SecureStorage.Remove("RememberMeSession");
+                        }
+                    }
+                }
+
+                Debug.WriteLine("[DEBUG] LoginPage: Aucune session automatique trouvée");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[DEBUG] LoginPage: Erreur lors de la vérification: {ex.Message}");
+            }
+        }
+
+        private async Task SafeNavigateToHomePage()
+        {
+            if (_isNavigating) return;
+
+            try
+            {
+                _isNavigating = true;
+                await MainThread.InvokeOnMainThreadAsync(async () =>
+                {
+                    await NavigateToHomePage();
+                });
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[DEBUG] Erreur lors de la navigation sécurisée: {ex.Message}");
+            }
+            finally
+            {
+                _isNavigating = false;
             }
         }
 
@@ -249,20 +370,39 @@ namespace SOLARY.ViewModels
 
         private async Task NavigateToRegister()
         {
+            if (_isNavigating) return;
+
             var page = GetCurrentPage();
             if (page?.Navigation != null)
             {
-                await page.Navigation.PushAsync(new RegisterPage());
+                _isNavigating = true;
+                try
+                {
+                    await page.Navigation.PushAsync(new RegisterPage());
+                }
+                finally
+                {
+                    _isNavigating = false;
+                }
             }
         }
 
-        // Méthode pour naviguer vers HomePage
         private async Task NavigateToHomePage()
         {
+            if (_isNavigating) return;
+
             var page = GetCurrentPage();
             if (page?.Navigation != null)
             {
-                await page.Navigation.PushAsync(new HomePage());
+                _isNavigating = true;
+                try
+                {
+                    await page.Navigation.PushAsync(new HomePage());
+                }
+                finally
+                {
+                    _isNavigating = false;
+                }
             }
         }
 

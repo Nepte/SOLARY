@@ -487,16 +487,6 @@ namespace SOLARY.Views
                 accueilTab.GestureRecognizers.Add(tapGesture);
             }
 
-            var statsTab = this.FindByName<VerticalStackLayout>("StatistiquesTab");
-            if (statsTab != null)
-            {
-                var tapGesture = new TapGestureRecognizer();
-                tapGesture.Tapped += async (s, e) => {
-                    await DisplayAlert("Statistiques", "La page Statistiques n'est pas encore implémentée.", "OK");
-                };
-                statsTab.GestureRecognizers.Add(tapGesture);
-            }
-
             var locateTab = this.FindByName<VerticalStackLayout>("LocaliserTab");
             if (locateTab != null)
             {
@@ -512,7 +502,7 @@ namespace SOLARY.Views
             {
                 var tapGesture = new TapGestureRecognizer();
                 tapGesture.Tapped += async (s, e) => {
-                    await DisplayAlert("Paramètres", "La page Paramètres n'est pas encore implémentée.", "OK");
+                    await Navigation.PushAsync(new SettingsPage());
                 };
                 settingsTab.GestureRecognizers.Add(tapGesture);
             }

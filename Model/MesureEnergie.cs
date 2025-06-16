@@ -5,16 +5,37 @@ namespace SOLARY.Model
 {
     public class MesureEnergie
     {
+        [JsonPropertyName("mesure_id")]
         public int MesureId { get; set; }
+
+        [JsonPropertyName("borne_id")]
         public int BorneId { get; set; }
+
+        [JsonPropertyName("voltage")]
         public double Voltage { get; set; }
+
+        [JsonPropertyName("current")]
         public double Current { get; set; }
+
+        [JsonPropertyName("power")]
         public double Power { get; set; }
+
+        [JsonPropertyName("battery_level")]
         public int BatteryLevel { get; set; }
+
+        [JsonPropertyName("total_energy")]
         public double? TotalEnergy { get; set; }
+
+        [JsonPropertyName("solar_power")]
         public double? SolarPower { get; set; }
+
+        [JsonPropertyName("energy_generated_kwh")]
         public double? EnergyGeneratedKwh { get; set; }
+
+        [JsonPropertyName("energy_consumed_kwh")]
         public double? EnergyConsumedKwh { get; set; }
+
+        [JsonPropertyName("measure_date")]
         public DateTime MeasureDate { get; set; }
 
         // Propriété calculée pour la réduction CO2
@@ -22,29 +43,34 @@ namespace SOLARY.Model
 
         private double CalculateCo2Reduction()
         {
-            // Formule exacte selon ChatGPT :
-            // Énergie (kWh) = Puissance (W) × Durée (h) / 1000
-            // Durée = 30 secondes = 0.00833 h
-            // CO2 évité = Énergie (kWh) × 400 g/kWh
+            // Formule améliorée pour une borne photovoltaïque
+            // Calcul sur une base horaire pour des valeurs plus représentatives
+            // Facteur d'émission CO2 du réseau électrique français : ~57g CO2/kWh (2023)
+            // Conversion en mg pour des valeurs plus lisibles
 
-            double dureeHeures = 30.0 / 3600.0; // 30 secondes = 0.00833 h
-            double energieWh = Power * dureeHeures; // En Wh (pas encore en kWh)
-            double energieKwh = energieWh / 1000.0; // Conversion Wh → kWh
-            double co2EviteGrammes = energieKwh * 400.0; // 400g CO2/kWh
+            if (Power <= 0) return 0;
 
-            // Exemple avec 1.4W :
-            // energieWh = 1.4 × 0.00833 = 0.01166 Wh
-            // energieKwh = 0.01166 / 1000 = 0.00001166 kWh  
-            // co2EviteGrammes = 0.00001166 × 400 = 0.004664g
+            // Calcul de l'énergie produite par heure (en kWh)
+            double energieKwhParHeure = Power / 1000.0; // Conversion W → kWh/h
 
-            // Debug du calcul étape par étape
-            System.Diagnostics.Debug.WriteLine($"🔍 Calcul CO2 pour {Power}W:");
-            System.Diagnostics.Debug.WriteLine($"   Durée: {dureeHeures}h");
-            System.Diagnostics.Debug.WriteLine($"   Énergie Wh: {energieWh}");
-            System.Diagnostics.Debug.WriteLine($"   Énergie kWh: {energieKwh}");
-            System.Diagnostics.Debug.WriteLine($"   CO2 évité: {co2EviteGrammes}g");
+            // CO2 évité par heure en grammes (facteur français plus réaliste)
+            double co2EviteGrammesParHeure = energieKwhParHeure * 57.0; // 57g CO2/kWh
 
-            return Math.Round(co2EviteGrammes, 3); // 6 décimales pour les très petites valeurs
+            // Conversion en milligrammes pour affichage plus lisible
+            double co2EviteMgParHeure = co2EviteGrammesParHeure * 1000.0;
+
+            // Pour l'affichage, on peut diviser par 60 pour avoir une valeur par minute
+            // ou garder la valeur horaire selon les préférences
+            double co2EviteMgParMinute = co2EviteMgParHeure / 60.0;
+
+            // Debug du calcul
+            System.Diagnostics.Debug.WriteLine($"🔍 Calcul CO2 amélioré pour {Power}W:");
+            System.Diagnostics.Debug.WriteLine($"   Énergie/h: {energieKwhParHeure:F4} kWh");
+            System.Diagnostics.Debug.WriteLine($"   CO2 évité/h: {co2EviteGrammesParHeure:F2}g");
+            System.Diagnostics.Debug.WriteLine($"   CO2 évité/min: {co2EviteMgParMinute:F1}mg");
+
+            // Retourner la valeur par minute en mg, arrondie à 1 décimale
+            return Math.Round(co2EviteMgParMinute, 1);
         }
     }
 }
